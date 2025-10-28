@@ -156,6 +156,12 @@ class WorkflowOrchestrator:
                 tagged_dialogue.content
             )
             
+            # Step 7: Checklist analysis
+            logger.debug("Step 7: Performing checklist analysis")
+            checklist_analysis = await self.openai_service.checklist_analysis(
+                tagged_dialogue.content
+            )
+            
             # Create processing result
             result = ProcessingResult(
                 audio_file=audio_file,
@@ -163,6 +169,7 @@ class WorkflowOrchestrator:
                 tagged_dialogue=tagged_dialogue,
                 quality_scores=quality_analysis,
                 detailed_analysis=detailed_analysis,
+                checklist_analysis=checklist_analysis,
                 detected_manager=manager_result.detected_manager,
                 processing_timestamp=datetime.now()
             )
@@ -364,6 +371,12 @@ class WorkflowOrchestrator:
                 tagged_dialogue.content
             )
             
+            # Step 7: Checklist analysis
+            logger.debug("Step 7: Performing checklist analysis")
+            checklist_analysis = await self.openai_service.checklist_analysis(
+                tagged_dialogue.content
+            )
+            
             # Create processing result
             result = ProcessingResult(
                 audio_file=audio_file,
@@ -371,6 +384,7 @@ class WorkflowOrchestrator:
                 tagged_dialogue=tagged_dialogue,
                 quality_scores=quality_analysis,
                 detailed_analysis=detailed_analysis,
+                checklist_analysis=checklist_analysis,
                 detected_manager=manager_result.detected_manager,
                 processing_timestamp=datetime.now()
             )
@@ -410,6 +424,7 @@ class WorkflowOrchestrator:
                     "total_score": quality_analysis.total_score
                 },
                 "detailed_analysis": detailed_analysis.model_dump() if detailed_analysis else None,
+                "checklist_analysis": checklist_analysis.model_dump(by_alias=True) if checklist_analysis else None,
                 "detected_manager": manager_result.detected_manager,
                 "processing_timestamp": result.processing_timestamp.isoformat()
             }
