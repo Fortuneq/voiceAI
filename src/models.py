@@ -110,9 +110,9 @@ class ChecklistAnalysisResult(BaseModel):
     stage_greeting: Dict[str, Union[float, int]] = Field(alias="Stage GREETING") 
     stage_contact_establishment: Dict[str, Union[float, int]] = Field(alias="Stage CONTACT ESTABLISHMENT")
     stage_programming: Dict[str, Union[float, int]] = Field(alias="Stage PROGRAMMING")
-    stage_need_creation: Dict[str, Union[float, int]] = Field(alias="Stage NEED CREATION")
+    stage_need_identification: Dict[str, Union[float, int]] = Field(alias="Stage NEED IDENTIFICATION")
     stage_presentation: Dict[str, Union[float, int]] = Field(alias="Stage PRESENTATION")
-    stage_working_with_objections: Dict[str, Union[float, int]] = Field(alias="Stage WORKING WITH OBJECTIONS")
+    stage_handling_objections: Dict[str, Union[float, int]] = Field(alias="Stage HANDLING OBJECTIONS")
     stage_closing: Dict[str, Union[float, int]] = Field(alias="Stage CLOSING")
     overall_total: float = Field(alias="OVERALL TOTAL")
     

@@ -23,70 +23,66 @@
 Пример JSON-структуры:
 
 {
-  "Call Type": "Исходящий",
+  "Call Type": "Входящий / Исходящий",
   "Stage GREETING": {
-    "Time before connecting to manager": 0,
-    "Corporate greeting": 0,
-    "Tone is friendly, cheerful, with a smile in the voice": 0,
-    "Does not rush or swallow words": 0,
-    "States the purpose of the call (information reason)": 0,
-    "Does not use the phrase 'is it convenient for you to talk'": 0,
-    "Does not use the phrase 'how can I address you'": 0,
-    "Total": 0
+    "Time before connecting to manager": "Время до соединения с менеджером",
+    "Corporate greeting": "Корпоративное приветствие",
+    "Tone friendly and cheerful, smile in voice": "Тон добродушный, приветливый, есть улыбка в голосе",
+    "Does not rush or swallow words": "Не тараторит, не съедает слова",
+    "States the purpose of the call (info reason)": "Озвучивает цель звонка / инфоповод",
+    "Does not use phrase 'is it convenient to talk'": "Не использует фразу 'вам удобно разговаривать'",
+    "Does not use phrase 'how can I address you'": "Не использует фразу 'как к вам можно обращаться'",
+    "Total": "Итого"
   },
   "Stage CONTACT ESTABLISHMENT": {
-    "Addresses by name at least twice": 0,
-    "Does not interrupt, listens to the end": 0,
-    "Speaks in simple, clear language": 0,
-    "Avoids dry formal tone": 0,
-    "Communicates on equal terms": 0,
-    "Uses small talk techniques": 0,
-    "Gives a compliment or praise": 0,
-    "Uses humor": 0,
-    "Total": 0
+    "Addresses by name at least twice": "Обращается по имени, минимум 2 раза",
+    "Does not interrupt, listens fully": "Не перебивает, дослушивает до конца",
+    "Speaks in simple clear language": "Говорит на простом понятном языке",
+    "Avoids dry formal tone": "Отсутствует сухой формальный тон",
+    "Communicates as equal": "Общается на 'равных'",
+    "Uses small talk (weather, events, hobbies, travel, etc.)": "Использует приемы Small talk (погода, праздники, события, отдых, путешествия, хобби, интересы, спорт, покупки, новости и т.д.)",
+    "Gives compliment or praise": "Говорит комплимент, похвалу (про компанию, сайт, собеседнику)",
+    "Uses humor (joke, anecdote)": "Использует юмор (анекдот, шутка)",
+    "Total": "Итого"
   },
   "Stage PROGRAMMING": {
-    "Uses programming techniques at the beginning of the call": 0,
-    "Leads the conversation throughout": 0,
-    "Total": 0
+    "Uses programming at start to control conversation": "Использует программирование в начале разговора, чтобы контроль общения был на стороне менеджера",
+    "Leads conversation throughout": "На протяжении всего диалога менеджер 'ведет', а не наоборот",
+    "Total": "Итого"
   },
-  "Stage NEED CREATION": {
-    "Asks mandatory questions": 0,
-    "Presents the company": 0,
-    "Does not say 'We are an operator/provider of internet services'": 0,
-    "Finds out what the company does": 0,
-    "Finds out if internet service is already connected": 0,
-    "If satisfied, asks about backup channel": 0,
-    "Asks about attack incidents": 0,
-    "Asks about additional services": 0,
-    "Total": 0
+  "Stage NEED IDENTIFICATION": {
+    "Asks required questions": "Задал обязательные вопросы",
+    "Finds out company’s business area": "Выяснил чем занимается компания, какая сфера деятельности",
+    "Total": "Итого"
   },
   "Stage PRESENTATION": {
-    "Presents 2–3 services": 0,
-    "Mentions cases or reviews": 0,
-    "Offers to send commercial proposal or test period": 0,
-    "Manager knows the product": 0,
-    "Total": 0
+    "Presents company": "Делает презентацию компании",
+    "Presents 2–3 services with benefits": "Делает презентацию 2–3 услуг, выделяя преимущества и выгоды каждой",
+    "Mentions positive cases or reviews": "Рассказывает о положительных отзывах или успешных кейсах",
+    "Offers to send proposal or test period": "Делает предложение отправить КП или попробовать тестовый период",
+    "Manager knows product, no mistakes": "Менеджер знает продукт и не допускает ошибок",
+    "Total": "Итого"
   },
-  "Stage WORKING WITH OBJECTIONS": {
-    "Handles all objections": 0,
-    "Agrees while handling objections": 0,
-    "Arguments correspond to objection": 0,
-    "Does not argue with client": 0,
-    "Offers to send commercial proposal after handling objections": 0,
-    "Total": 0
+  "Stage HANDLING OBJECTIONS": {
+    "Handles all objections fully": "Отрабатывает все возражения без исключений",
+    "Agrees and empathizes during objection": "Присоединяется при отработке возражений",
+    "Arguments match objection": "Аргументы соответствуют возражению",
+    "Does not argue or violate boundaries": "Не спорит с клиентом, не нарушает границы клиента",
+    "Offers to send proposal after objection": "Предлагает отправить КП после отработки возражения",
+    "Total": "Итого"
   },
   "Stage CLOSING": {
-    "Asks if there are remaining questions": 0,
-    "Clarifies where to send commercial proposal": 0,
-    "Asks by what date the service is needed": 0,
-    "Summarizes the conversation": 0,
-    "Announces next steps": 0,
-    "Leaves contacts and thanks the client": 0,
-    "Total": 0
+    "Asks if questions remain": "Уточняет остались ли вопросы или сомнения",
+    "Clarifies where to send proposal": "Уточняет куда отправить КП",
+    "Asks by what date service needed": "Спросить к какой дате необходимо предоставить услугу",
+    "Summarizes conversation": "Резюмирует разговор",
+    "States next steps and deadlines": "Озвучивает следующие шаги действий со сроками",
+    "Leaves contacts and thanks client": "Оставил контакты и поблагодарил за звонок",
+    "Total": "Итого"
   },
-  "OVERALL TOTAL": 0
+  "OVERALL TOTAL": "ВСЕГО"
 }
+
 
 # Output Format
 Верни только JSON в этом формате.  
