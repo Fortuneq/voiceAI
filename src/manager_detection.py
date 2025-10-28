@@ -6,8 +6,8 @@ import re
 from typing import Optional
 from loguru import logger
 
-from .config import config
-from .models import ManagerDetectionResult
+from config import config
+from models import ManagerDetectionResult
 
 
 class ManagerDetectionService:

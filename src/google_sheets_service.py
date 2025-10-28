@@ -9,8 +9,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 from loguru import logger
 
-from .config import config
-from .models import CallQualityScore, ProcessingResult, CallAnalysisResult
+from config import config
+from models import CallQualityScore, ProcessingResult, CallAnalysisResult
 
 
 class GoogleSheetsService:

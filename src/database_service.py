@@ -9,12 +9,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from loguru import logger
 
-from .database_models import (
+from database_models import (
     Manager, CallRecord, ChecklistAnalysis, AIAnalysis, LegacyQualityScore, ProcessedFile,
     create_database_engine, create_session_factory, create_tables
 )
-from .models import ProcessingResult, AudioFile, ChecklistAnalysisResult, CallAnalysisResult
-from .config import config
+from models import ProcessingResult, AudioFile, ChecklistAnalysisResult, CallAnalysisResult
+from config import config
 
 
 class DatabaseService:

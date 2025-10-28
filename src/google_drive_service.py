@@ -13,8 +13,8 @@ from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2.service_account import Credentials
 from loguru import logger
 
-from .config import config
-from .models import AudioFile
+from config import config
+from models import AudioFile
 
 
 class GoogleDriveService:

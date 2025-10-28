@@ -9,8 +9,8 @@ from pathlib import Path
 from openai import OpenAI
 from loguru import logger
 
-from .config import config
-from .models import TranscriptionResult, RoleTaggedDialogue, CallQualityScore, CallAnalysisResult, ChecklistAnalysisResult
+from config import config
+from models import TranscriptionResult, RoleTaggedDialogue, CallQualityScore, CallAnalysisResult, ChecklistAnalysisResult
 
 
 class OpenAIService:

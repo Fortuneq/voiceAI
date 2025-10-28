@@ -10,13 +10,13 @@ from pathlib import Path
 
 from loguru import logger
 
-from .config import config
-from .models import ProcessingResult, AudioFile
-from .google_drive_service import GoogleDriveService
-from .openai_service import OpenAIService
-from .manager_detection import ManagerDetectionService
-from .google_sheets_service import GoogleSheetsService
-from .database_service import DatabaseService
+from config import config
+from models import ProcessingResult, AudioFile
+from google_drive_service import GoogleDriveService
+from openai_service import OpenAIService
+from manager_detection import ManagerDetectionService
+from google_sheets_service import GoogleSheetsService
+from database_service import DatabaseService
 
 
 class WorkflowOrchestrator:
