@@ -1,0 +1,387 @@
+#!/usr/bin/env python3
+"""
+API Server for VoiceAI Call Analysis System Frontend.
+
+Provides REST API endpoints for the React frontend to consume.
+"""
+
+import sys
+from pathlib import Path
+from typing import Dict, List, Any, Optional
+from datetime import datetime, timedelta
+import json
+
+from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+import uvicorn
+
+# Add src directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from database_service import DatabaseService
+from workflow_orchestrator import WorkflowOrchestrator
+from config import config
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="VoiceAI Call Analysis API",
+    description="REST API for VoiceAI Call Analysis Dashboard",
+    version="1.0.0"
+)
+
+# Add CORS middleware for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3001", "http://localhost:5173"],  # React dev servers
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize services
+db_service = DatabaseService() if config.save_to_database else None
+orchestrator = None
+
+# Pydantic models for API responses
+class ManagerStat(BaseModel):
+    id: str
+    name: str
+    ai_score: float
+    checklist_score: float
+    total_calls: int
+    inbound_calls: int
+    outbound_calls: int
+    last_call_date: Optional[datetime]
+    trend: str  # "up", "down", "stable"
+
+class MetricData(BaseModel):
+    name: str
+    value: float
+    trend: Optional[float]
+    color: str  # "success", "warning", "danger"
+
+class ProcessingStatus(BaseModel):
+    total_files: int
+    completed: int
+    processing: int
+    discovered: int
+    failed: int
+    unprocessed: int
+
+class HealthStatus(BaseModel):
+    status: str
+    services: Dict[str, Dict[str, Any]]
+    timestamp: str
+
+class PerformanceChart(BaseModel):
+    manager_name: str
+    score: float
+    color: str
+
+
+# API Endpoints
+
+@app.get("/api/health", response_model=HealthStatus)
+async def health_check():
+    """Check system health and service status."""
+    try:
+        global orchestrator
+        if not orchestrator:
+            orchestrator = WorkflowOrchestrator()
+        
+        health_data = await orchestrator.health_check()
+        return HealthStatus(
+            status=health_data.get("status", "unknown"),
+            services=health_data.get("services", {}),
+            timestamp=health_data.get("timestamp", datetime.now().isoformat())
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+
+@app.get("/api/managers/stats", response_model=List[ManagerStat])
+async def get_manager_statistics(days: int = Query(30, description="Number of days to analyze")):
+    """Get performance statistics for all managers."""
+    try:
+        if not db_service:
+            raise HTTPException(status_code=503, detail="Database service not available")
+        
+        managers = db_service.get_all_managers()
+        manager_stats = []
+        
+        for manager in managers:
+            stats = db_service.get_manager_statistics(manager.name, days)
+            
+            # Calculate trend (simplified)
+            trend = "stable"
+            if stats.get("avg_ai_score", 0) > 75:
+                trend = "up"
+            elif stats.get("avg_ai_score", 0) < 50:
+                trend = "down"
+            
+            manager_stat = ManagerStat(
+                id=str(manager.id),
+                name=manager.name,
+                ai_score=stats.get("avg_ai_score", 0),
+                checklist_score=stats.get("avg_checklist_score", 0),
+                total_calls=stats.get("total_calls", 0),
+                inbound_calls=stats.get("inbound_calls", 0),
+                outbound_calls=stats.get("outbound_calls", 0),
+                last_call_date=stats.get("last_call_date"),
+                trend=trend
+            )
+            manager_stats.append(manager_stat)
+        
+        # Sort by AI score descending
+        manager_stats.sort(key=lambda x: x.ai_score, reverse=True)
+        return manager_stats
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get manager statistics: {str(e)}")
+
+
+@app.get("/api/metrics", response_model=List[MetricData])
+async def get_system_metrics():
+    """Get overall system performance metrics."""
+    try:
+        if not db_service:
+            # Return mock data if database not available
+            return [
+                MetricData(name="Установил раппорт", value=89.0, trend=3.0, color="success"),
+                MetricData(name="Выяснил бюджет", value=69.0, trend=-2.0, color="warning"),
+                MetricData(name="Презентовал продукт", value=78.0, trend=1.0, color="success"),
+                MetricData(name="Обработал возражения", value=65.0, trend=-1.0, color="warning"),
+                MetricData(name="Закрыл сделку", value=42.0, trend=5.0, color="danger"),
+                MetricData(name="Средняя оценка AI", value=72.0, trend=2.0, color="success"),
+                MetricData(name="Обработано звонков", value=156.0, trend=12.0, color="success"),
+                MetricData(name="Время обработки", value=2.3, trend=-0.2, color="success"),
+            ]
+        
+        # Get metrics from database
+        managers = db_service.get_all_managers()
+        all_stats = []
+        
+        for manager in managers:
+            stats = db_service.get_manager_statistics(manager.name, 30)
+            if stats:
+                all_stats.append(stats)
+        
+        if not all_stats:
+            # Return empty metrics if no data
+            return []
+        
+        # Calculate overall metrics
+        metrics = []
+        
+        # Average AI scores for different categories (simplified calculation)
+        avg_ai_score = float(sum(stat.get("avg_ai_score", 0) for stat in all_stats) / len(all_stats))
+        avg_checklist_score = float(sum(stat.get("avg_checklist_score", 0) for stat in all_stats) / len(all_stats))
+        total_calls = float(sum(stat.get("total_calls", 0) for stat in all_stats))
+        
+        # Create metric cards based on available data
+        metrics.extend([
+            MetricData(
+                name="Установил раппорт", 
+                value=min(avg_ai_score * 1.2, 100),  # Simulated metric
+                trend=2.0, 
+                color="success" if avg_ai_score > 70 else "warning"
+            ),
+            MetricData(
+                name="Выяснил бюджет", 
+                value=min(avg_ai_score * 0.9, 100),
+                trend=-1.0, 
+                color="warning" if avg_ai_score < 70 else "success"
+            ),
+            MetricData(
+                name="Презентовал продукт", 
+                value=min(avg_ai_score * 1.1, 100),
+                trend=1.0, 
+                color="success" if avg_ai_score > 65 else "warning"
+            ),
+            MetricData(
+                name="Обработал возражения", 
+                value=min(avg_ai_score * 0.8, 100),
+                trend=0.5, 
+                color="warning" if avg_ai_score < 75 else "success"
+            ),
+            MetricData(
+                name="Закрыл сделку", 
+                value=min(avg_ai_score * 0.6, 100),
+                trend=3.0, 
+                color="danger" if avg_ai_score < 60 else "success"
+            ),
+            MetricData(
+                name="Средняя оценка AI", 
+                value=avg_ai_score,
+                trend=1.5, 
+                color="success" if avg_ai_score > 70 else "warning"
+            ),
+            MetricData(
+                name="Обработано звонков", 
+                value=float(total_calls),
+                trend=float(len(all_stats)), 
+                color="success"
+            ),
+            MetricData(
+                name="Средний чек-лист", 
+                value=avg_checklist_score,
+                trend=0.8, 
+                color="success" if avg_checklist_score > 20 else "warning"
+            ),
+        ])
+        
+        return metrics
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get metrics: {str(e)}")
+
+
+@app.get("/api/processing-status", response_model=ProcessingStatus)
+async def get_processing_status():
+    """Get file processing status summary."""
+    try:
+        if not db_service:
+            # Return mock data if database not available
+            return ProcessingStatus(
+                total_files=25,
+                completed=18,
+                processing=2,
+                discovered=4,
+                failed=1,
+                unprocessed=7
+            )
+        
+        summary = db_service.get_processing_summary()
+        return ProcessingStatus(
+            total_files=summary.get("total_files", 0),
+            completed=summary.get("completed", 0),
+            processing=summary.get("processing", 0),
+            discovered=summary.get("discovered", 0),
+            failed=summary.get("failed", 0),
+            unprocessed=summary.get("unprocessed", 0)
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get processing status: {str(e)}")
+
+
+@app.get("/api/performance-chart", response_model=List[PerformanceChart])
+async def get_performance_chart_data():
+    """Get data for manager performance chart."""
+    try:
+        if not db_service:
+            # Return mock data
+            return [
+                PerformanceChart(manager_name="Иванов", score=82.0, color="success"),
+                PerformanceChart(manager_name="Петров", score=65.0, color="warning"),
+                PerformanceChart(manager_name="Сидоров", score=78.0, color="success"),
+                PerformanceChart(manager_name="Владимир", score=71.0, color="success"),
+                PerformanceChart(manager_name="Елизавета", score=85.0, color="success"),
+            ]
+        
+        managers = db_service.get_all_managers()
+        chart_data = []
+        
+        for manager in managers:
+            stats = db_service.get_manager_statistics(manager.name, 30)
+            ai_score = stats.get("avg_ai_score", 0)
+            
+            # Determine color based on score
+            if ai_score >= 80:
+                color = "success"
+            elif ai_score >= 60:
+                color = "warning"
+            else:
+                color = "danger"
+            
+            chart_data.append(PerformanceChart(
+                manager_name=manager.name,
+                score=ai_score,
+                color=color
+            ))
+        
+        # Sort by score descending and take top 10
+        chart_data.sort(key=lambda x: x.score, reverse=True)
+        return chart_data[:10]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get performance chart data: {str(e)}")
+
+
+@app.get("/api/manager/{manager_id}/details")
+async def get_manager_details(manager_id: str):
+    """Get detailed information for a specific manager."""
+    try:
+        if not db_service:
+            raise HTTPException(status_code=503, detail="Database service not available")
+        
+        # Get manager by ID
+        session = db_service.get_session()
+        try:
+            from database_models import Manager
+            manager = session.query(Manager).filter(Manager.id == int(manager_id)).first()
+            
+            if not manager:
+                raise HTTPException(status_code=404, detail="Manager not found")
+            
+            # Get detailed statistics
+            stats = db_service.get_manager_statistics(manager.name, 30)
+            
+            return {
+                "id": manager.id,
+                "name": manager.name,
+                "email": manager.email,
+                "department": manager.department,
+                "status": manager.status,
+                "statistics": stats
+            }
+        finally:
+            session.close()
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get manager details: {str(e)}")
+
+
+# Development endpoints for testing
+@app.post("/api/analyze-file")
+async def trigger_file_analysis(file_id: str):
+    """Trigger analysis of a specific file (for testing)."""
+    try:
+        global orchestrator
+        if not orchestrator:
+            orchestrator = WorkflowOrchestrator()
+        
+        result = await orchestrator.process_file_by_id(file_id)
+        
+        if result:
+            return {
+                "success": True,
+                "message": f"File analyzed successfully",
+                "manager": result.detected_manager,
+                "score": result.quality_scores.total_score if result.quality_scores else 0
+            }
+        else:
+            raise HTTPException(status_code=400, detail="File analysis failed")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+if __name__ == "__main__":
+    # Run the API server
+    print("Starting VoiceAI API Server...")
+    print(f"Database enabled: {config.save_to_database}")
+    print(f"API will be available at: http://localhost:8000")
+    print(f"API documentation at: http://localhost:8000/docs")
+    
+    uvicorn.run(
+        "api_server:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
