@@ -16,6 +16,7 @@ from .google_drive_service import GoogleDriveService
 from .openai_service import OpenAIService
 from .manager_detection import ManagerDetectionService
 from .google_sheets_service import GoogleSheetsService
+from .database_service import DatabaseService
 
 
 class WorkflowOrchestrator:
@@ -30,6 +31,7 @@ class WorkflowOrchestrator:
             self.openai_service = OpenAIService()
             self.manager_detection = ManagerDetectionService()
             self.sheets_service = GoogleSheetsService()
+            self.database_service = DatabaseService() if config.save_to_database else None
             
             logger.info("All services initialized successfully")
         except Exception as e:
@@ -174,19 +176,29 @@ class WorkflowOrchestrator:
                 processing_timestamp=datetime.now()
             )
             
-            # Step 7: Save results to Google Sheets
-            logger.debug("Step 7: Saving results to Google Sheets")
+            # Step 8: Save results to database and/or Google Sheets
+            logger.debug("Step 8: Saving results to storage")
             
-            # Save call quality analysis to manager-specific sheet
-            success = self.sheets_service.append_call_analysis(result)
-            if not success:
-                logger.warning("Failed to save call analysis to sheets")
+            # Save to database if enabled
+            if self.database_service:
+                db_success = self.database_service.save_processing_result(result, manager_result.detected_manager)
+                if db_success:
+                    logger.info("Successfully saved results to database")
+                else:
+                    logger.warning("Failed to save results to database")
             
-            # Save detailed analysis if available
-            if detailed_analysis:
-                detailed_success = self.sheets_service.append_detailed_analysis(result)
-                if not detailed_success:
-                    logger.warning("Failed to save detailed analysis to sheets")
+            # Save to Google Sheets if enabled
+            if config.save_to_sheets:
+                # Save call quality analysis to manager-specific sheet
+                success = self.sheets_service.append_call_analysis(result)
+                if not success:
+                    logger.warning("Failed to save call analysis to sheets")
+                
+                # Save detailed analysis if available
+                if detailed_analysis:
+                    detailed_success = self.sheets_service.append_detailed_analysis(result)
+                    if not detailed_success:
+                        logger.warning("Failed to save detailed analysis to sheets")
             
             logger.info(f"Successfully processed {audio_file.name}")
             logger.info(f"Manager detected: {manager_result.detected_manager}")
@@ -287,6 +299,22 @@ class WorkflowOrchestrator:
                 "status": "configured",
                 "model": config.openai_model
             }
+            
+            # Check Database service
+            if self.database_service:
+                try:
+                    db_health = self.database_service.health_check()
+                    health_status["services"]["database"] = db_health
+                except Exception as e:
+                    health_status["services"]["database"] = {
+                        "status": "error",
+                        "error": str(e)
+                    }
+            else:
+                health_status["services"]["database"] = {
+                    "status": "disabled",
+                    "note": "Database service not enabled in configuration"
+                }
             
         except Exception as e:
             logger.error(f"Error in health check: {e}")
@@ -389,7 +417,15 @@ class WorkflowOrchestrator:
                 processing_timestamp=datetime.now()
             )
             
-            # Save results to JSON file instead of Google Sheets
+            # Save results to database if enabled (same as normal processing)
+            if self.database_service:
+                db_success = self.database_service.save_processing_result(result, manager_result.detected_manager)
+                if db_success:
+                    logger.info("Successfully saved results to database")
+                else:
+                    logger.warning("Failed to save results to database")
+            
+            # Save results to JSON file
             logger.debug(f"Step 7: Saving results to JSON file: {output_file}")
             
             # Convert result to JSON-serializable format

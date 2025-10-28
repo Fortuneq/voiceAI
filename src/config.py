@@ -58,6 +58,15 @@ class Config(BaseSettings):
     audio_temp_dir: str = Field(default="./temp_audio", env="AUDIO_TEMP_DIR")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     
+    # Database settings
+    database_url: str = Field(
+        default="sqlite:///./voiceai_calls.db",
+        env="DATABASE_URL",
+        description="Database connection URL (PostgreSQL, MySQL, SQLite)"
+    )
+    save_to_database: bool = Field(default=True, env="SAVE_TO_DATABASE")
+    save_to_sheets: bool = Field(default=False, env="SAVE_TO_SHEETS")
+    
     # Manager names for detection
     managers: list[str] = ["Елизавета", "Владимир", "Надежда"]
     company_name: str = "Весткол"
