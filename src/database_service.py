@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from loguru import logger
 
 from .database_models import (
-    Manager, CallRecord, ChecklistAnalysis, AIAnalysis, LegacyQualityScore,
+    Manager, CallRecord, ChecklistAnalysis, AIAnalysis, LegacyQualityScore, ProcessedFile,
     create_database_engine, create_session_factory, create_tables
 )
 from .models import ProcessingResult, AudioFile, ChecklistAnalysisResult, CallAnalysisResult
@@ -387,3 +387,163 @@ class DatabaseService:
                 "status": "error",
                 "error": str(e)
             }
+    
+    def mark_file_discovered(self, file_id: str, file_name: str, modified_time: datetime) -> bool:
+        """Mark a file as discovered in Google Drive."""
+        session = self.get_session()
+        try:
+            # Check if file already exists
+            existing_file = session.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
+            
+            if existing_file:
+                # Only reset status if file was actually modified (significant time difference)
+                # Handle timezone-aware vs naive datetime comparison
+                existing_time = existing_file.file_modified_time
+                if existing_time.tzinfo is None:
+                    existing_time = existing_time.replace(tzinfo=modified_time.tzinfo)
+                elif modified_time.tzinfo is None:
+                    modified_time = modified_time.replace(tzinfo=existing_time.tzinfo)
+                
+                time_diff = abs((existing_time - modified_time).total_seconds())
+                if time_diff > 60:  # Only reset if more than 1 minute difference
+                    existing_file.file_modified_time = modified_time
+                    existing_file.status = 'discovered'  # Reset status if file was modified
+                    existing_file.processed_at = None
+                    existing_file.error_message = None
+                    session.commit()
+                    logger.info(f"Updated file {file_name} - file was modified, reset to discovered")
+                elif existing_file.file_modified_time != modified_time:
+                    # Small time difference, just update timestamp without changing status
+                    existing_file.file_modified_time = modified_time
+                    session.commit()
+                    logger.debug(f"Updated timestamp for {file_name} (minor difference)")
+                return False  # File already existed
+            
+            # Create new record
+            processed_file = ProcessedFile(
+                file_id=file_id,
+                file_name=file_name,
+                file_modified_time=modified_time,
+                status='discovered'
+            )
+            session.add(processed_file)
+            session.commit()
+            
+            logger.info(f"Marked file as discovered: {file_name}")
+            return True  # New file discovered
+            
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error marking file as discovered {file_name}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def mark_file_processing(self, file_id: str) -> bool:
+        """Mark a file as currently being processed."""
+        session = self.get_session()
+        try:
+            processed_file = session.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
+            if processed_file:
+                processed_file.status = 'processing'
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error marking file as processing {file_id}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def mark_file_completed(self, file_id: str) -> bool:
+        """Mark a file as successfully processed."""
+        session = self.get_session()
+        try:
+            processed_file = session.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
+            if processed_file:
+                processed_file.status = 'completed'
+                processed_file.processed_at = datetime.now()
+                processed_file.error_message = None
+                session.commit()
+                logger.info(f"Marked file as completed: {processed_file.file_name}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error marking file as completed {file_id}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def mark_file_failed(self, file_id: str, error_message: str) -> bool:
+        """Mark a file as failed to process."""
+        session = self.get_session()
+        try:
+            processed_file = session.query(ProcessedFile).filter(ProcessedFile.file_id == file_id).first()
+            if processed_file:
+                processed_file.status = 'failed'
+                processed_file.error_message = error_message
+                session.commit()
+                logger.warning(f"Marked file as failed: {processed_file.file_name} - {error_message}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error marking file as failed {file_id}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def is_file_processed(self, file_id: str) -> bool:
+        """Check if a file has already been processed."""
+        session = self.get_session()
+        try:
+            processed_file = session.query(ProcessedFile).filter(
+                ProcessedFile.file_id == file_id,
+                ProcessedFile.status == 'completed'
+            ).first()
+            return processed_file is not None
+        except Exception as e:
+            logger.error(f"Error checking if file is processed {file_id}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def get_unprocessed_files(self) -> List[ProcessedFile]:
+        """Get list of files that haven't been processed yet."""
+        session = self.get_session()
+        try:
+            unprocessed = session.query(ProcessedFile).filter(
+                ProcessedFile.status.in_(['discovered', 'failed'])
+            ).order_by(ProcessedFile.created_at).all()
+            return unprocessed
+        except Exception as e:
+            logger.error(f"Error getting unprocessed files: {e}")
+            return []
+        finally:
+            session.close()
+    
+    def get_processing_summary(self) -> Dict[str, Any]:
+        """Get summary of file processing status."""
+        session = self.get_session()
+        try:
+            total_files = session.query(ProcessedFile).count()
+            discovered_files = session.query(ProcessedFile).filter(ProcessedFile.status == 'discovered').count()
+            processing_files = session.query(ProcessedFile).filter(ProcessedFile.status == 'processing').count()
+            completed_files = session.query(ProcessedFile).filter(ProcessedFile.status == 'completed').count()
+            failed_files = session.query(ProcessedFile).filter(ProcessedFile.status == 'failed').count()
+            
+            return {
+                "total_files": total_files,
+                "discovered": discovered_files,
+                "processing": processing_files,
+                "completed": completed_files,
+                "failed": failed_files,
+                "unprocessed": discovered_files + failed_files
+            }
+        except Exception as e:
+            logger.error(f"Error getting processing summary: {e}")
+            return {}
+        finally:
+            session.close()

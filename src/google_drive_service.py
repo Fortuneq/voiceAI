@@ -20,12 +20,13 @@ from .models import AudioFile
 class GoogleDriveService:
     """Service for interacting with Google Drive API."""
     
-    def __init__(self):
+    def __init__(self, database_service=None):
         """Initialize Google Drive service."""
         self.credentials = self._get_credentials()
         self.service = build('drive', 'v3', credentials=self.credentials)
         self.folder_id = config.google_drive_folder_id
-        self.processed_files: Dict[str, datetime] = {}
+        self.processed_files: Dict[str, datetime] = {}  # Legacy tracking
+        self.database_service = database_service
         
     def _get_credentials(self) -> Credentials:
         """Get Google API credentials from service account file."""
@@ -99,15 +100,47 @@ class GoogleDriveService:
         new_files = []
         
         for file in all_files:
-            # Check if file is new or has been modified since last processing
-            if (file.id not in self.processed_files or 
-                file.modified_time > self.processed_files[file.id]):
-                new_files.append(file)
+            # Use database tracking if available, otherwise fall back to legacy method
+            if self.database_service:
+                # Mark file as discovered in database
+                is_new = self.database_service.mark_file_discovered(
+                    file.id, file.name, file.modified_time
+                )
+                
+                # Check if file needs processing (new or not completed)
+                if not self.database_service.is_file_processed(file.id):
+                    new_files.append(file)
+            else:
+                # Legacy method - check in-memory tracking
+                if (file.id not in self.processed_files or 
+                    file.modified_time > self.processed_files[file.id]):
+                    new_files.append(file)
         
         if new_files:
             logger.info(f"Found {len(new_files)} new/modified files to process")
         
         return new_files
+    
+    def discover_all_files(self) -> int:
+        """Discover all files in Drive and add to database tracking. Returns count of new files."""
+        if not self.database_service:
+            logger.warning("Database service not available for file discovery")
+            return 0
+        
+        all_files = self.list_audio_files()
+        new_files_count = 0
+        
+        logger.info(f"Discovering {len(all_files)} files in Google Drive folder")
+        
+        for file in all_files:
+            is_new = self.database_service.mark_file_discovered(
+                file.id, file.name, file.modified_time
+            )
+            if is_new:
+                new_files_count += 1
+        
+        logger.info(f"Discovery complete: {new_files_count} new files found")
+        return new_files_count
     
     def download_file(self, file_id: str, file_name: str) -> Optional[str]:
         """Download a file from Google Drive to local storage."""

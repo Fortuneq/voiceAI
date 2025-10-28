@@ -56,7 +56,7 @@ async def main():
     )
     parser.add_argument(
         "--mode",
-        choices=["monitor", "process-file", "analyze-file", "health-check", "stats"],
+        choices=["monitor", "process-file", "analyze-file", "health-check", "stats", "processing-status"],
         default="monitor",
         help="Operation mode (default: monitor)"
     )
@@ -178,6 +178,35 @@ async def main():
             for key, value in stats['configuration'].items():
                 print(f"  {key}: {value}")
             print("=" * 50)
+        
+        elif args.mode == "processing-status":
+            logger.info("Getting file processing status")
+            if orchestrator.database_service:
+                summary = orchestrator.database_service.get_processing_summary()
+                unprocessed_files = orchestrator.database_service.get_unprocessed_files()
+                
+                print("\n" + "=" * 50)
+                print("FILE PROCESSING STATUS")
+                print("=" * 50)
+                print(f"Total files discovered: {summary.get('total_files', 0)}")
+                print(f"✅ Completed: {summary.get('completed', 0)}")
+                print(f"🔄 Processing: {summary.get('processing', 0)}")
+                print(f"📁 Discovered: {summary.get('discovered', 0)}")
+                print(f"❌ Failed: {summary.get('failed', 0)}")
+                print(f"📋 Unprocessed: {summary.get('unprocessed', 0)}")
+                
+                if unprocessed_files:
+                    print(f"\nUnprocessed files ({len(unprocessed_files)}):")
+                    for file in unprocessed_files[:10]:  # Show first 10
+                        status_icon = "🔄" if file.status == "processing" else "❌" if file.status == "failed" else "📁"
+                        print(f"  {status_icon} {file.file_name} ({file.status})")
+                    if len(unprocessed_files) > 10:
+                        print(f"  ... and {len(unprocessed_files) - 10} more")
+                
+                print("=" * 50)
+            else:
+                print("❌ Database service not enabled. Cannot show processing status.")
+                print("   Set SAVE_TO_DATABASE=true in .env to enable tracking.")
     
     except KeyboardInterrupt:
         logger.info("Application stopped by user")

@@ -278,6 +278,28 @@ class LegacyQualityScore(Base):
     call_record = relationship("CallRecord", back_populates="legacy_quality_scores")
 
 
+class ProcessedFile(Base):
+    """Track processed files to avoid re-analysis on restart."""
+    __tablename__ = 'processed_files'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    file_id = Column(String(255), nullable=False, unique=True)  # Google Drive file ID
+    file_name = Column(String(500), nullable=False)
+    file_modified_time = Column(TIMESTAMP, nullable=False)  # From Google Drive
+    status = Column(String(20), default='discovered')  # discovered, processing, completed, failed
+    error_message = Column(Text)  # Store error if processing failed
+    processed_at = Column(TIMESTAMP)  # When analysis was completed
+    created_at = Column(TIMESTAMP, default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    
+    __table_args__ = (
+        CheckConstraint("status IN ('discovered', 'processing', 'completed', 'failed')", name='check_processed_file_status'),
+        Index('idx_processed_files_file_id', 'file_id'),
+        Index('idx_processed_files_status', 'status'),
+        Index('idx_processed_files_modified_time', 'file_modified_time'),
+    )
+
+
 # Database session factory
 def create_database_engine(database_url: str):
     """Create database engine with proper configuration."""

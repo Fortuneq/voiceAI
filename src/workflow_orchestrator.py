@@ -27,11 +27,18 @@ class WorkflowOrchestrator:
         logger.info("Initializing VoiceAI Workflow Orchestrator")
         
         try:
-            self.drive_service = GoogleDriveService()
+            self.database_service = DatabaseService() if config.save_to_database else None
+            self.drive_service = GoogleDriveService(database_service=self.database_service)
             self.openai_service = OpenAIService()
             self.manager_detection = ManagerDetectionService()
             self.sheets_service = GoogleSheetsService()
-            self.database_service = DatabaseService() if config.save_to_database else None
+            
+            # Discover existing files at startup if database is enabled
+            if self.database_service:
+                logger.info("Performing startup file discovery...")
+                new_files_found = self.drive_service.discover_all_files()
+                unprocessed_count = len(self.database_service.get_unprocessed_files())
+                logger.info(f"Startup discovery: {new_files_found} new files, {unprocessed_count} total unprocessed")
             
             logger.info("All services initialized successfully")
         except Exception as e:
@@ -79,14 +86,29 @@ class WorkflowOrchestrator:
             
             for audio_file in new_files:
                 try:
+                    # Mark file as being processed
+                    if self.database_service:
+                        self.database_service.mark_file_processing(audio_file.id)
+                    
                     await self.process_single_file(audio_file)
-                    # Mark file as processed
-                    self.drive_service.mark_file_processed(
-                        audio_file.id, 
-                        audio_file.modified_time
-                    )
+                    
+                    # Mark file as completed
+                    if self.database_service:
+                        self.database_service.mark_file_completed(audio_file.id)
+                    else:
+                        # Legacy tracking
+                        self.drive_service.mark_file_processed(
+                            audio_file.id, 
+                            audio_file.modified_time
+                        )
+                        
                 except Exception as e:
                     logger.error(f"Failed to process file {audio_file.name}: {e}")
+                    
+                    # Mark file as failed
+                    if self.database_service:
+                        self.database_service.mark_file_failed(audio_file.id, str(e))
+                    
                     continue
                     
         except Exception as e:
@@ -337,6 +359,16 @@ class WorkflowOrchestrator:
                 logger.error(f"Could not get metadata for file ID: {file_id}")
                 return None
             
+            # Mark file as being processed
+            if self.database_service:
+                modified_time = datetime.fromisoformat(
+                    file_metadata['modifiedTime'].replace('Z', '+00:00')
+                )
+                self.database_service.mark_file_discovered(
+                    file_id, file_metadata['name'], modified_time
+                )
+                self.database_service.mark_file_processing(file_id)
+            
             # Create AudioFile object
             audio_file = AudioFile(
                 id=file_metadata['id'],
@@ -469,6 +501,10 @@ class WorkflowOrchestrator:
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(result_dict, f, ensure_ascii=False, indent=2)
             
+            # Mark file as completed
+            if self.database_service:
+                self.database_service.mark_file_completed(file_id)
+            
             logger.info(f"Successfully analyzed {audio_file.name}")
             logger.info(f"Results saved to: {output_file}")
             logger.info(f"Manager detected: {manager_result.detected_manager}")
@@ -485,4 +521,9 @@ class WorkflowOrchestrator:
             
         except Exception as e:
             logger.error(f"Error analyzing file {file_id}: {e}")
+            
+            # Mark file as failed
+            if self.database_service:
+                self.database_service.mark_file_failed(file_id, str(e))
+            
             return None
