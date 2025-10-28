@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  voiceai:
+    build: .
+    container_name: voiceai-call-analysis
+    restart: unless-stopped
+    
+    # Environment file
+    env_file:
+      - .env
+    
+    # Volumes
+    volumes:
+      - ./logs:/app/logs
+      - ./temp_audio:/app/temp_audio
+      - ./google-credentials.json:/app/google-credentials.json:ro
+      - ./.env:/app/.env:ro
+    
+    # Environment variables
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - GOOGLE_SERVICE_ACCOUNT_FILE=/app/google-credentials.json
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "main.py", "--mode", "health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
