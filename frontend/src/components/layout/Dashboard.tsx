@@ -3,12 +3,13 @@ import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { MainContent } from './MainContent';
 import { ApiService } from '../../services/api';
-import type { Manager, PerformanceMetric, CallMetrics } from '../../types';
+import type { Manager, PerformanceMetric, CallMetrics, ChecklistStageDetail } from '../../types';
 
 export const Dashboard: React.FC = () => {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const [callMetrics, setCallMetrics] = useState<CallMetrics | null>(null);
+  const [checklistStages, setChecklistStages] = useState<ChecklistStageDetail[]>([]);
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,13 +20,14 @@ export const Dashboard: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        const [managersRes, metricsRes, callMetricsRes] = await Promise.all([
+        const [managersRes, metricsRes, callMetricsRes, checklistRes] = await Promise.all([
           ApiService.getManagersStats(),
           ApiService.getPerformanceMetrics(),
           ApiService.getCallMetrics(),
+          ApiService.getChecklistStages(30),
         ]);
 
-        console.log('API Responses:', { managersRes, metricsRes, callMetricsRes });
+        console.log('API Responses:', { managersRes, metricsRes, callMetricsRes, checklistRes });
 
         if (managersRes.success) {
           console.log('Setting managers:', managersRes.data.managers);
@@ -46,6 +48,13 @@ export const Dashboard: React.FC = () => {
           setCallMetrics(callMetricsRes.data);
         } else {
           console.error('Failed to load call metrics:', callMetricsRes.message);
+        }
+
+        if (checklistRes.success) {
+          console.log('Setting checklist stages:', checklistRes.data);
+          setChecklistStages(checklistRes.data);
+        } else {
+          console.error('Failed to load checklist stages:', checklistRes.message);
         }
       } catch (err) {
         setError('Ошибка загрузки данных. Попробуйте обновить страницу.');
@@ -103,6 +112,7 @@ export const Dashboard: React.FC = () => {
           metrics={metrics}
           managers={managers}
           selectedManager={selectedManager}
+          checklistStages={checklistStages}
           isLoading={isLoading}
         />
       </div>

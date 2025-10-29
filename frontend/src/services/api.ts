@@ -7,6 +7,7 @@ import type {
   ProcessingStatusResponse,
   ProcessingStatus,
   PerformanceChart,
+  ChecklistStageDetail,
 } from '../types';
 
 // Mock data
@@ -419,6 +420,30 @@ export class ApiService {
           progress: 0,
         },
         message: 'Failed to fetch processing status',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  // Get checklist stage details
+  static async getChecklistStages(days: number = 30): Promise<ApiResponse<ChecklistStageDetail[]>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/checklist-stages?days=${days}`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data: ChecklistStageDetail[] = await this.handleResponse<ChecklistStageDetail[]>(response);
+      
+      return {
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching checklist stages:', error);
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch checklist stages',
         timestamp: new Date().toISOString(),
       };
     }

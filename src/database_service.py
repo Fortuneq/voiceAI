@@ -352,6 +352,76 @@ class DatabaseService:
         finally:
             session.close()
     
+    def get_checklist_stage_metrics(self, days: int = 30) -> Dict[str, Any]:
+        """Get real checklist stage metrics from database."""
+        session = self.get_session()
+        try:
+            from sqlalchemy import and_, func
+            from datetime import datetime, timedelta
+            
+            cutoff_date = datetime.now() - timedelta(days=days)
+            
+            # Get all call records with checklist analysis in specified period
+            results = session.query(CallRecord, ChecklistAnalysis).join(
+                ChecklistAnalysis, CallRecord.id == ChecklistAnalysis.call_record_id
+            ).filter(
+                CallRecord.call_date >= cutoff_date
+            ).all()
+            
+            if not results:
+                return {}
+            
+            # Calculate stage averages
+            stage_totals = {
+                'greeting': [],
+                'contact': [],
+                'programming': [],
+                'need': [],
+                'presentation': [],
+                'objections': [],
+                'closing': []
+            }
+            
+            for call, checklist in results:
+                stage_totals['greeting'].append(float(checklist.greeting_total))
+                stage_totals['contact'].append(float(checklist.contact_total))
+                stage_totals['programming'].append(float(checklist.programming_total))
+                stage_totals['need'].append(float(checklist.need_total))
+                stage_totals['presentation'].append(float(checklist.presentation_total))
+                stage_totals['objections'].append(float(checklist.objections_total))
+                stage_totals['closing'].append(float(checklist.closing_total))
+            
+            # Calculate averages and convert to percentages (max scores per stage)
+            max_scores = {
+                'greeting': 7.0,      # 7 criteria × 1 point each
+                'contact': 8.0,       # 8 criteria × 1 point each
+                'programming': 2.0,   # 2 criteria × 1 point each
+                'need': 2.0,          # 2 criteria × 1 point each
+                'presentation': 5.0,  # 5 criteria × 1 point each
+                'objections': 5.0,    # 5 criteria × 1 point each
+                'closing': 6.0        # 6 criteria × 1 point each
+            }
+            
+            metrics = {}
+            for stage, scores in stage_totals.items():
+                if scores:
+                    avg_score = sum(scores) / len(scores)
+                    percentage = (avg_score / max_scores[stage]) * 100
+                    metrics[stage] = {
+                        'average_score': avg_score,
+                        'percentage': min(percentage, 100),
+                        'total_calls': len(scores),
+                        'max_possible': max_scores[stage]
+                    }
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Error getting checklist stage metrics: {e}")
+            return {}
+        finally:
+            session.close()
+    
     def get_all_managers(self) -> List[Manager]:
         """Get list of all active managers."""
         session = self.get_session()

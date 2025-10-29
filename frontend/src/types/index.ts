@@ -36,6 +36,25 @@ export interface PerformanceChart {
   color: string;
 }
 
+// Checklist stage details interface (matching backend)
+export interface ChecklistStageDetail {
+  stage_name: string;
+  stage_total: number;
+  max_possible: number;
+  percentage: number;
+  criteria_count: number;
+  color: string;
+}
+
+// Checklist criteria details interface (matching backend)
+export interface ChecklistCriteriaDetail {
+  criteria_name: string;
+  average_score: number;
+  max_score: number;
+  percentage: number;
+  stage: string;
+}
+
 // Performance metrics for dashboard cards
 export interface PerformanceMetric {
   id: string;

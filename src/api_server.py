@@ -86,6 +86,21 @@ class PerformanceChart(BaseModel):
     score: float
     color: str
 
+class ChecklistStageDetail(BaseModel):
+    stage_name: str
+    stage_total: float
+    max_possible: float
+    percentage: float
+    criteria_count: int
+    color: str
+
+class ChecklistCriteriaDetail(BaseModel):
+    criteria_name: str
+    average_score: float
+    max_score: float
+    percentage: float
+    stage: str
+
 
 # API Endpoints
 
@@ -194,76 +209,67 @@ async def get_system_metrics(current_user = Depends(get_current_user)):
                 MetricData(name="Время обработки", value=2.3, trend=-0.2, color="success"),
             ]
         
-        # Get metrics from database
-        managers = db_service.get_all_managers()
-        all_stats = []
+        # Get real checklist stage metrics from database
+        stage_metrics = db_service.get_checklist_stage_metrics(30)
         
-        for manager in managers:
-            stats = db_service.get_manager_statistics(manager.name, 30)
-            if stats:
-                all_stats.append(stats)
-        
-        if not all_stats:
+        if not stage_metrics:
             # Return empty metrics if no data
             return []
         
-        # Calculate overall metrics
+        # Create metric cards based on real checklist data
         metrics = []
         
-        # Average AI scores for different categories (simplified calculation)
-        avg_ai_score = float(sum(stat.get("avg_ai_score", 0) for stat in all_stats) / len(all_stats))
-        avg_checklist_score = float(sum(stat.get("avg_checklist_score", 0) for stat in all_stats) / len(all_stats))
-        total_calls = float(sum(stat.get("total_calls", 0) for stat in all_stats))
+        # Map checklist stages to Russian names and add metrics
+        stage_names = {
+            'greeting': 'Приветствие',
+            'contact': 'Установление контакта', 
+            'programming': 'Программирование',
+            'need': 'Выявление потребности',
+            'presentation': 'Презентация продукта',
+            'objections': 'Обработка возражений',
+            'closing': 'Закрытие сделки'
+        }
         
-        # Create metric cards based on available data
+        for stage, name in stage_names.items():
+            if stage in stage_metrics:
+                data = stage_metrics[stage]
+                percentage = data['percentage']
+                
+                # Determine color based on performance
+                if percentage >= 80:
+                    color = "success"
+                elif percentage >= 60:
+                    color = "warning"
+                else:
+                    color = "danger"
+                
+                # Calculate trend (simplified - could be enhanced with historical data)
+                trend = percentage - 70  # Assuming 70% is baseline
+                
+                metrics.append(MetricData(
+                    name=name,
+                    value=percentage,
+                    trend=trend,
+                    color=color
+                ))
+        
+        # Add summary metrics
+        all_percentages = [stage_metrics[stage]['percentage'] for stage in stage_metrics]
+        avg_performance = sum(all_percentages) / len(all_percentages) if all_percentages else 0
+        total_calls = sum(stage_metrics[stage]['total_calls'] for stage in stage_metrics) / len(stage_metrics) if stage_metrics else 0
+        
         metrics.extend([
             MetricData(
-                name="Установил раппорт", 
-                value=min(avg_ai_score * 1.2, 100),  # Simulated metric
-                trend=2.0, 
-                color="success" if avg_ai_score > 70 else "warning"
+                name="Общая эффективность",
+                value=avg_performance,
+                trend=avg_performance - 75,  # 75% baseline
+                color="success" if avg_performance > 75 else "warning" if avg_performance > 60 else "danger"
             ),
             MetricData(
-                name="Выяснил бюджет", 
-                value=min(avg_ai_score * 0.9, 100),
-                trend=-1.0, 
-                color="warning" if avg_ai_score < 70 else "success"
-            ),
-            MetricData(
-                name="Презентовал продукт", 
-                value=min(avg_ai_score * 1.1, 100),
-                trend=1.0, 
-                color="success" if avg_ai_score > 65 else "warning"
-            ),
-            MetricData(
-                name="Обработал возражения", 
-                value=min(avg_ai_score * 0.8, 100),
-                trend=0.5, 
-                color="warning" if avg_ai_score < 75 else "success"
-            ),
-            MetricData(
-                name="Закрыл сделку", 
-                value=min(avg_ai_score * 0.6, 100),
-                trend=3.0, 
-                color="danger" if avg_ai_score < 60 else "success"
-            ),
-            MetricData(
-                name="Средняя оценка AI", 
-                value=avg_ai_score,
-                trend=1.5, 
-                color="success" if avg_ai_score > 70 else "warning"
-            ),
-            MetricData(
-                name="Обработано звонков", 
+                name="Обработано звонков",
                 value=float(total_calls),
-                trend=float(len(all_stats)), 
+                trend=5.0,  # Positive trend for call volume
                 color="success"
-            ),
-            MetricData(
-                name="Средний чек-лист", 
-                value=avg_checklist_score,
-                trend=0.8, 
-                color="success" if avg_checklist_score > 20 else "warning"
             ),
         ])
         
@@ -343,6 +349,74 @@ async def get_performance_chart_data(current_user = Depends(get_current_user)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get performance chart data: {str(e)}")
+
+
+@app.get("/api/checklist-stages", response_model=List[ChecklistStageDetail])
+async def get_checklist_stage_details(
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user = Depends(get_current_user)
+):
+    """Get detailed checklist stage breakdown."""
+    try:
+        if not db_service:
+            # Return mock data
+            return [
+                ChecklistStageDetail(
+                    stage_name="Приветствие",
+                    stage_total=5.2,
+                    max_possible=7.0,
+                    percentage=74.3,
+                    criteria_count=7,
+                    color="warning"
+                ),
+                ChecklistStageDetail(
+                    stage_name="Установление контакта",
+                    stage_total=6.1,
+                    max_possible=8.0,
+                    percentage=76.3,
+                    criteria_count=8,
+                    color="warning"
+                ),
+            ]
+        
+        stage_metrics = db_service.get_checklist_stage_metrics(days)
+        stage_details = []
+        
+        stage_info = {
+            'greeting': {'name': 'Приветствие', 'criteria': 7},
+            'contact': {'name': 'Установление контакта', 'criteria': 8},
+            'programming': {'name': 'Программирование', 'criteria': 2},
+            'need': {'name': 'Выявление потребности', 'criteria': 2},
+            'presentation': {'name': 'Презентация продукта', 'criteria': 5},
+            'objections': {'name': 'Обработка возражений', 'criteria': 5},
+            'closing': {'name': 'Закрытие сделки', 'criteria': 6}
+        }
+        
+        for stage, data in stage_metrics.items():
+            if stage in stage_info:
+                percentage = data['percentage']
+                
+                # Determine color
+                if percentage >= 80:
+                    color = "success"
+                elif percentage >= 60:
+                    color = "warning"
+                else:
+                    color = "danger"
+                
+                stage_details.append(ChecklistStageDetail(
+                    stage_name=stage_info[stage]['name'],
+                    stage_total=data['average_score'],
+                    max_possible=data['max_possible'],
+                    percentage=percentage,
+                    criteria_count=stage_info[stage]['criteria'],
+                    color=color
+                ))
+        
+        return stage_details
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get checklist stage details: {str(e)}")
 
 
 @app.get("/api/manager/{manager_id}/details")

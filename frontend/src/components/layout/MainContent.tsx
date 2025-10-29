@@ -1,12 +1,14 @@
 import React from 'react';
 import { MetricCard } from '../ui/MetricCard';
 import { PerformanceChart } from '../ui/PerformanceChart';
-import type { Manager, PerformanceMetric } from '../../types';
+import { ChecklistStageCard } from '../ui/ChecklistStageCard';
+import type { Manager, PerformanceMetric, ChecklistStageDetail } from '../../types';
 
 interface MainContentProps {
   metrics: PerformanceMetric[];
   managers: Manager[];
   selectedManager: Manager | null;
+  checklistStages: ChecklistStageDetail[];
   isLoading: boolean;
 }
 
@@ -14,6 +16,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   metrics,
   managers,
   selectedManager,
+  checklistStages,
   isLoading,
 }) => {
   console.log('MainContent received:', { metrics, managers, selectedManager, isLoading });
@@ -121,16 +124,43 @@ export const MainContent: React.FC<MainContentProps> = ({
           <LoadingSkeleton />
         ) : (
           <div className="space-y-8">
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {displayMetrics.map((metric) => (
-                <MetricCard
-                  key={metric.id}
-                  metric={metric}
-                  className="hover:shadow-lg transition-shadow"
-                />
-              ))}
-            </div>
+            {/* Legacy Metrics Grid - Still displaying old artificial metrics for reference */}
+            {metrics.length > 0 && (
+              <>
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">Общие метрики производительности</h2>
+                  <p className="text-sm text-gray-600">Обновленные данные на основе реальных критериев чек-листа</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {displayMetrics.map((metric) => (
+                    <MetricCard
+                      key={metric.id}
+                      metric={metric}
+                      className="hover:shadow-lg transition-shadow"
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Checklist Stages Grid - New real data */}
+            {checklistStages.length > 0 && (
+              <>
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-2">Детализация по стадиям чек-листа</h2>
+                  <p className="text-sm text-gray-600">Реальные данные по каждой стадии продаж из базы данных</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {checklistStages.map((stage, index) => (
+                    <ChecklistStageCard
+                      key={`${stage.stage_name}-${index}`}
+                      stage={stage}
+                      className="hover:shadow-lg transition-shadow"
+                    />
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Performance Chart */}
             {!selectedManager && (
