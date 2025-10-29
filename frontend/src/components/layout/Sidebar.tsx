@@ -15,6 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onManagerSelect,
   isLoading,
 }) => {
+  console.log('Sidebar received managers:', managers, 'isLoading:', isLoading);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'aiScore',

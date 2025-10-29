@@ -94,7 +94,7 @@ def main():
         
         print("\n" + "=" * 50)
         print("🎉 VoiceAI Dashboard is starting up!")
-        print("📊 Dashboard: http://localhost:3001")
+        print("📊 Dashboard: http://localhost:3000")
         print("🔌 API: http://localhost:8000")
         print("📚 API Docs: http://localhost:8000/docs")
         print("=" * 50)

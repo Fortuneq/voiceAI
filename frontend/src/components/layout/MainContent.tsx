@@ -16,6 +16,7 @@ export const MainContent: React.FC<MainContentProps> = ({
   selectedManager,
   isLoading,
 }) => {
+  console.log('MainContent received:', { metrics, managers, selectedManager, isLoading });
   // Filter metrics for selected manager or show overall metrics
   const displayMetrics = selectedManager 
     ? metrics.map(metric => ({

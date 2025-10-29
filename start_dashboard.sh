@@ -54,7 +54,7 @@ cd ..
 echo ""
 echo "=================================="
 echo "🎉 VoiceAI Dashboard is running!"
-echo "📊 Dashboard: http://localhost:3001"
+echo "📊 Dashboard: http://localhost:3000"
 echo "🔌 API: http://localhost:8000"
 echo "📚 API Docs: http://localhost:8000/docs"
 echo "=================================="

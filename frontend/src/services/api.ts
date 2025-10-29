@@ -184,7 +184,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // API service class
 export class ApiService {
-  private static baseUrl = 'http://localhost:8000/api';
+  private static baseUrl = '/api';
 
   // Get managers statistics
   static async getManagersStats(): Promise<ApiResponse<ManagerStatsResponse>> {

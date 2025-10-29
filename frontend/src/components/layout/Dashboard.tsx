@@ -25,16 +25,27 @@ export const Dashboard: React.FC = () => {
           ApiService.getCallMetrics(),
         ]);
 
+        console.log('API Responses:', { managersRes, metricsRes, callMetricsRes });
+
         if (managersRes.success) {
+          console.log('Setting managers:', managersRes.data.managers);
           setManagers(managersRes.data.managers);
+        } else {
+          console.error('Failed to load managers:', managersRes.message);
         }
 
         if (metricsRes.success) {
+          console.log('Setting metrics:', metricsRes.data);
           setMetrics(metricsRes.data);
+        } else {
+          console.error('Failed to load metrics:', metricsRes.message);
         }
 
         if (callMetricsRes.success) {
+          console.log('Setting call metrics:', callMetricsRes.data);
           setCallMetrics(callMetricsRes.data);
+        } else {
+          console.error('Failed to load call metrics:', callMetricsRes.message);
         }
       } catch (err) {
         setError('Ошибка загрузки данных. Попробуйте обновить страницу.');
