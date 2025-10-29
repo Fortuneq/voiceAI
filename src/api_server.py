@@ -486,6 +486,39 @@ async def trigger_file_analysis(
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 
+@app.post("/api/export-sheets")
+async def export_to_google_sheets(
+    manager_name: Optional[str] = Query(None, description="Manager name to export (all if not specified)"),
+    current_user = Depends(get_current_admin_user)  # Admin only
+):
+    """Export database data to Google Sheets."""
+    try:
+        global orchestrator
+        if not orchestrator:
+            orchestrator = WorkflowOrchestrator()
+        
+        success = await orchestrator.export_to_google_sheets(manager_name)
+        
+        if success:
+            message = f"Successfully exported data to Google Sheets"
+            if manager_name:
+                message += f" for manager: {manager_name}"
+            else:
+                message += " for all managers"
+            
+            return {
+                "success": True,
+                "message": message,
+                "exported_manager": manager_name,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Export to Google Sheets failed")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+
 if __name__ == "__main__":
     # Run the API server
     print("Starting VoiceAI API Server...")

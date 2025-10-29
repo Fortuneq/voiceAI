@@ -527,3 +527,29 @@ class WorkflowOrchestrator:
                 self.database_service.mark_file_failed(file_id, str(e))
             
             return None
+    
+    async def export_to_google_sheets(self, manager_name: Optional[str] = None):
+        """Export database data to Google Sheets.
+        
+        Args:
+            manager_name: Export specific manager only, or all if None
+        """
+        try:
+            from sheets_exporter import SheetsExporter
+            
+            logger.info("Starting Google Sheets export")
+            exporter = SheetsExporter()
+            
+            if manager_name:
+                logger.info(f"Exporting data for manager: {manager_name}")
+                exporter.export_single_manager(manager_name)
+            else:
+                logger.info("Exporting data for all managers")
+                exporter.export_all_manager_data()
+            
+            logger.info("Google Sheets export completed successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error exporting to Google Sheets: {e}")
+            return False
