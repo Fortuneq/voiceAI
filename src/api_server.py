@@ -14,6 +14,7 @@ import json
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 import uvicorn
 
@@ -23,6 +24,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from database_service import DatabaseService
 from workflow_orchestrator import WorkflowOrchestrator
 from config import config
+from auth_utils import (
+    UserLogin, UserRegister, UserResponse, Token,
+    get_current_user, get_current_admin_user, get_current_user_optional,
+    login_user, register_user, create_user_response
+)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -83,6 +89,32 @@ class PerformanceChart(BaseModel):
 
 # API Endpoints
 
+# Authentication endpoints
+@app.post("/api/auth/login", response_model=Token)
+async def login(user_data: UserLogin):
+    """Authenticate user and return JWT token."""
+    if not db_service:
+        raise HTTPException(status_code=503, detail="Database service not available")
+    
+    return login_user(user_data, db_service)
+
+@app.post("/api/auth/register", response_model=UserResponse)
+async def register(
+    user_data: UserRegister,
+    current_user = Depends(get_current_admin_user)  # Only admins can create users
+):
+    """Register a new user (admin only)."""
+    if not db_service:
+        raise HTTPException(status_code=503, detail="Database service not available")
+    
+    user = register_user(user_data, db_service)
+    return create_user_response(user)
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user = Depends(get_current_user)):
+    """Get current authenticated user information."""
+    return create_user_response(current_user)
+
 @app.get("/api/health", response_model=HealthStatus)
 async def health_check():
     """Check system health and service status."""
@@ -102,7 +134,10 @@ async def health_check():
 
 
 @app.get("/api/managers/stats", response_model=List[ManagerStat])
-async def get_manager_statistics(days: int = Query(30, description="Number of days to analyze")):
+async def get_manager_statistics(
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user = Depends(get_current_user)
+):
     """Get performance statistics for all managers."""
     try:
         if not db_service:
@@ -143,7 +178,7 @@ async def get_manager_statistics(days: int = Query(30, description="Number of da
 
 
 @app.get("/api/metrics", response_model=List[MetricData])
-async def get_system_metrics():
+async def get_system_metrics(current_user = Depends(get_current_user)):
     """Get overall system performance metrics."""
     try:
         if not db_service:
@@ -239,7 +274,7 @@ async def get_system_metrics():
 
 
 @app.get("/api/processing-status", response_model=ProcessingStatus)
-async def get_processing_status():
+async def get_processing_status(current_user = Depends(get_current_user)):
     """Get file processing status summary."""
     try:
         if not db_service:
@@ -268,7 +303,7 @@ async def get_processing_status():
 
 
 @app.get("/api/performance-chart", response_model=List[PerformanceChart])
-async def get_performance_chart_data():
+async def get_performance_chart_data(current_user = Depends(get_current_user)):
     """Get data for manager performance chart."""
     try:
         if not db_service:
@@ -311,7 +346,10 @@ async def get_performance_chart_data():
 
 
 @app.get("/api/manager/{manager_id}/details")
-async def get_manager_details(manager_id: str):
+async def get_manager_details(
+    manager_id: str,
+    current_user = Depends(get_current_user)
+):
     """Get detailed information for a specific manager."""
     try:
         if not db_service:
@@ -348,7 +386,10 @@ async def get_manager_details(manager_id: str):
 
 # Development endpoints for testing
 @app.post("/api/analyze-file")
-async def trigger_file_analysis(file_id: str):
+async def trigger_file_analysis(
+    file_id: str,
+    current_user = Depends(get_current_admin_user)  # Admin only
+):
     """Trigger analysis of a specific file (for testing)."""
     try:
         global orchestrator

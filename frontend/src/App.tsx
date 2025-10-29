@@ -1,11 +1,16 @@
 import React from 'react';
-import { Dashboard } from './components';
+import { AuthProvider } from './contexts/AuthContext';
+import { Dashboard, ProtectedRoute } from './components';
 import './index.css';
 
 const App: React.FC = () => {
   return (
     <div className="App">
-      <Dashboard />
+      <AuthProvider>
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      </AuthProvider>
     </div>
   );
 };

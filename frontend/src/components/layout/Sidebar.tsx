@@ -176,14 +176,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex items-center space-x-1">
                       <span className="text-xs text-gray-500">AI:</span>
                       <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreColor(manager.aiScore)}`}>
-                        {manager.aiScore}
+                        {Number(manager.aiScore).toFixed(1)}
                       </span>
                     </div>
                     
                     <div className="flex items-center space-x-1">
                       <span className="text-xs text-gray-500">Ч-Л:</span>
                       <span className={`text-xs font-medium px-2 py-1 rounded ${getScoreColor(manager.checklistScore)}`}>
-                        {manager.checklistScore}
+                        {Number(manager.checklistScore).toFixed(1)}
                       </span>
                     </div>
                   </div>

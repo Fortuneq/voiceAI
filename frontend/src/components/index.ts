@@ -4,6 +4,10 @@ export { Header } from './layout/Header';
 export { Sidebar } from './layout/Sidebar';
 export { MainContent } from './layout/MainContent';
 
+// Auth components
+export { Login } from './auth/Login';
+export { ProtectedRoute } from './auth/ProtectedRoute';
+
 // UI components
 export { MetricCard } from './ui/MetricCard';
 export { ManagerTable } from './ui/ManagerTable';

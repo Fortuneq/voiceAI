@@ -80,11 +80,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric, className }) => 
         <div className="flex items-end justify-between">
           <div>
             <div className="text-3xl font-bold text-gray-900">
-              {metric.value}%
+              {Number(metric.value).toFixed(1)}%
             </div>
             <div className="flex items-center text-sm text-gray-500 mt-1">
               <Target className="w-3 h-3 mr-1" />
-              <span>Цель: {metric.target}%</span>
+              <span>Цель: {Number(metric.target).toFixed(1)}%</span>
             </div>
           </div>
           

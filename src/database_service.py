@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from loguru import logger
 
 from database_models import (
-    Manager, CallRecord, ChecklistAnalysis, AIAnalysis, LegacyQualityScore, ProcessedFile,
+    Manager, CallRecord, ChecklistAnalysis, AIAnalysis, LegacyQualityScore, ProcessedFile, User,
     create_database_engine, create_session_factory, create_tables
 )
 from models import ProcessingResult, AudioFile, ChecklistAnalysisResult, CallAnalysisResult
@@ -545,5 +545,128 @@ class DatabaseService:
         except Exception as e:
             logger.error(f"Error getting processing summary: {e}")
             return {}
+        finally:
+            session.close()
+    
+    # Authentication methods
+    
+    def create_user(self, username: str, email: str, password_hash: str, role: str = 'user') -> Optional[User]:
+        """Create a new user."""
+        session = self.get_session()
+        try:
+            # Check if user already exists
+            existing_user = session.query(User).filter(
+                (User.username == username) | (User.email == email)
+            ).first()
+            
+            if existing_user:
+                logger.warning(f"User with username '{username}' or email '{email}' already exists")
+                return None
+            
+            user = User(
+                username=username,
+                email=email,
+                password_hash=password_hash,
+                role=role,
+                is_active=True
+            )
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+            
+            logger.info(f"Created new user: {username} with role {role}")
+            return user
+            
+        except IntegrityError as e:
+            session.rollback()
+            logger.error(f"Error creating user {username}: {e}")
+            return None
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Database error in create_user: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def get_user_by_username(self, username: str) -> Optional[User]:
+        """Get user by username."""
+        session = self.get_session()
+        try:
+            user = session.query(User).filter(User.username == username).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error getting user by username {username}: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """Get user by email."""
+        session = self.get_session()
+        try:
+            user = session.query(User).filter(User.email == email).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error getting user by email {email}: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        """Get user by ID."""
+        session = self.get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            return user
+        except Exception as e:
+            logger.error(f"Error getting user by id {user_id}: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def update_user_last_login(self, user_id: int) -> bool:
+        """Update user's last login timestamp."""
+        session = self.get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if user:
+                user.last_login = datetime.now()
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating last login for user {user_id}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def activate_user(self, user_id: int, is_active: bool = True) -> bool:
+        """Activate or deactivate a user."""
+        session = self.get_session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            if user:
+                user.is_active = is_active
+                session.commit()
+                logger.info(f"User {user.username} {'activated' if is_active else 'deactivated'}")
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating user status {user_id}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def get_all_users(self) -> List[User]:
+        """Get all users."""
+        session = self.get_session()
+        try:
+            users = session.query(User).order_by(User.created_at.desc()).all()
+            return users
+        except Exception as e:
+            logger.error(f"Error getting all users: {e}")
+            return []
         finally:
             session.close()

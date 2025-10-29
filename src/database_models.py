@@ -2,7 +2,7 @@
 SQLAlchemy database models for VoiceAI Call Analysis System.
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, DECIMAL, TIMESTAMP, ForeignKey, CheckConstraint, Index, BigInteger
+from sqlalchemy import create_engine, Column, Integer, String, Text, DECIMAL, TIMESTAMP, ForeignKey, CheckConstraint, Index, BigInteger, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import func
@@ -10,6 +10,32 @@ from datetime import datetime
 from typing import Optional
 
 Base = declarative_base()
+
+
+class User(Base):
+    """User model for authentication and authorization."""
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), nullable=False, unique=True)
+    email = Column(String(255), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(20), nullable=False, default='user')
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(TIMESTAMP, default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    last_login = Column(TIMESTAMP)
+    
+    __table_args__ = (
+        CheckConstraint("role IN ('admin', 'user')", name='check_user_role'),
+        Index('idx_users_username', 'username'),
+        Index('idx_users_email', 'email'),
+        Index('idx_users_role', 'role'),
+        Index('idx_users_is_active', 'is_active'),
+    )
+    
+    def __repr__(self):
+        return f"<User(username='{self.username}', role='{self.role}', active={self.is_active})>"
 
 
 class Manager(Base):

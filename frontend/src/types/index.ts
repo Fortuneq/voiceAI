@@ -99,6 +99,43 @@ export interface ProgressBarProps {
   className?: string;
 }
 
+// Authentication types
+export interface User {
+  id: string;
+  username: string;
+  email?: string;
+  role: 'admin' | 'user';
+  created_at?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
+}
+
 // Utility types
 export type TrendDirection = 'up' | 'down' | 'stable';
 export type MetricCategory = 'rapport' | 'budget' | 'presentation' | 'objection' | 'close' | 'follow-up';

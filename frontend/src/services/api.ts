@@ -179,21 +179,75 @@ const mockCallMetrics: CallMetrics = {
   lastUpdated: '2024-01-15T12:00:00Z',
 };
 
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Simulate API delay (currently unused but kept for future use)
+// const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // API service class
 export class ApiService {
   private static baseUrl = '/api';
 
+  // Get auth token from localStorage
+  private static getAuthToken(): string | null {
+    try {
+      return localStorage.getItem('voiceai_auth_token');
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      return null;
+    }
+  }
+
+  // Create authenticated headers
+  private static getAuthHeaders(): HeadersInit {
+    const token = this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  // Handle API errors, including auth errors
+  private static async handleResponse<T>(response: Response): Promise<T> {
+    if (response.status === 401) {
+      // Token expired or invalid - redirect to login
+      localStorage.removeItem('voiceai_auth_token');
+      window.location.href = '/login';
+      throw new Error('Authentication expired');
+    }
+
+    if (response.status === 403) {
+      throw new Error('Access forbidden');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        // If not JSON, use the text or default message
+        errorMessage = errorText || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
   // Get managers statistics
   static async getManagersStats(): Promise<ApiResponse<ManagerStatsResponse>> {
     try {
-      const response = await fetch(`${this.baseUrl}/managers/stats`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await fetch(`${this.baseUrl}/managers/stats`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data = await this.handleResponse<any[]>(response);
       
       // Transform API data to frontend format
       const managers: Manager[] = data.map((manager: any) => ({
@@ -232,11 +286,10 @@ export class ApiService {
   // Get performance metrics
   static async getPerformanceMetrics(): Promise<ApiResponse<PerformanceMetric[]>> {
     try {
-      const response = await fetch(`${this.baseUrl}/metrics`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await fetch(`${this.baseUrl}/metrics`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data = await this.handleResponse<any[]>(response);
       
       // Transform API data to frontend format
       const metrics: PerformanceMetric[] = data.map((metric: any, index: number) => ({
@@ -268,11 +321,10 @@ export class ApiService {
   // Get call metrics
   static async getCallMetrics(): Promise<ApiResponse<CallMetrics>> {
     try {
-      const response = await fetch(`${this.baseUrl}/processing-status`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: ProcessingStatus = await response.json();
+      const response = await fetch(`${this.baseUrl}/processing-status`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data: ProcessingStatus = await this.handleResponse<ProcessingStatus>(response);
       
       // Transform API data to CallMetrics format
       const callMetrics: CallMetrics = {
@@ -303,11 +355,10 @@ export class ApiService {
   // Get performance chart data
   static async getPerformanceChartData(): Promise<ApiResponse<PerformanceChart[]>> {
     try {
-      const response = await fetch(`${this.baseUrl}/performance-chart`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: PerformanceChart[] = await response.json();
+      const response = await fetch(`${this.baseUrl}/performance-chart`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data: PerformanceChart[] = await this.handleResponse<PerformanceChart[]>(response);
       
       return {
         success: true,
@@ -328,11 +379,10 @@ export class ApiService {
   // Get processing status
   static async getProcessingStatus(): Promise<ApiResponse<ProcessingStatusResponse>> {
     try {
-      const response = await fetch(`${this.baseUrl}/processing-status`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await fetch(`${this.baseUrl}/processing-status`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data = await this.handleResponse<any>(response);
       
       // Calculate status based on API data
       const totalFiles = data.total_files || 0;
@@ -377,11 +427,10 @@ export class ApiService {
   // Health check
   static async healthCheck(): Promise<ApiResponse<{ status: string }>> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await fetch(`${this.baseUrl}/health`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data = await this.handleResponse<{ status: string }>(response);
       
       return {
         success: true,
@@ -402,19 +451,20 @@ export class ApiService {
   // Get manager details
   static async getManagerDetails(managerId: string): Promise<ApiResponse<Manager | null>> {
     try {
-      const response = await fetch(`${this.baseUrl}/manager/${managerId}/details`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return {
-            success: false,
-            data: null,
-            message: 'Manager not found',
-            timestamp: new Date().toISOString(),
-          };
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(`${this.baseUrl}/manager/${managerId}/details`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (response.status === 404) {
+        return {
+          success: false,
+          data: null,
+          message: 'Manager not found',
+          timestamp: new Date().toISOString(),
+        };
       }
-      const data = await response.json();
+      
+      const data = await this.handleResponse<any>(response);
       
       const manager: Manager = {
         id: data.id,

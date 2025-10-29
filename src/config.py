@@ -67,6 +67,15 @@ class Config(BaseSettings):
     save_to_database: bool = Field(default=True, env="SAVE_TO_DATABASE")
     save_to_sheets: bool = Field(default=False, env="SAVE_TO_SHEETS")
     
+    # Authentication settings
+    jwt_secret_key: str = Field(
+        default="your-secret-key-change-this-in-production-very-important",
+        env="JWT_SECRET_KEY",
+        description="Secret key for JWT token generation - MUST be changed in production"
+    )
+    jwt_algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
+    jwt_access_token_expire_minutes: int = Field(default=1440, env="JWT_ACCESS_TOKEN_EXPIRE_MINUTES")  # 24 hours
+    
     # Manager names for detection
     managers: list[str] = ["Елизавета", "Владимир", "Надежда"]
     company_name: str = "Весткол"

@@ -74,7 +74,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 item.value >= 80 ? 'text-blue-600' :
                 item.value >= 70 ? 'text-yellow-600' : 'text-red-600'
               )}>
-                {item.value}
+                {Number(item.value).toFixed(1)}
               </span>
             </div>
           </div>
