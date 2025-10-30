@@ -1,49 +1,71 @@
 version: '3.8'
 
 services:
-  voiceai:
-    build: .
-    container_name: voiceai-call-analysis
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15
+    container_name: voiceai_postgres
+    environment:
+      POSTGRES_DB: voiceai_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
     restart: unless-stopped
-    
-    # Environment file
-    env_file:
-      - .env
-    
-    # Volumes
+    networks:
+      - voiceai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # VoiceAI Dashboard приложение
+  voiceai-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voiceai_dashboard
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/voiceai_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_SERVICE_ACCOUNT_FILE=${GOOGLE_SERVICE_ACCOUNT_FILE}
+      - GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}
+      - GOOGLE_SPREADSHEET_ID=${GOOGLE_SPREADSHEET_ID}
+      - ELIZAVETA_SHEET_NAME=${ELIZAVETA_SHEET_NAME}
+      - VLADIMIR_SHEET_NAME=${VLADIMIR_SHEET_NAME}
+      - NADEZHDA_SHEET_NAME=${NADEZHDA_SHEET_NAME}
+      - ANALYSIS_SHEET_NAME=${ANALYSIS_SHEET_NAME}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-60}
+      - SAVE_TO_DATABASE=${SAVE_TO_DATABASE:-true}
+      - SAVE_TO_SHEETS=${SAVE_TO_SHEETS:-false}
     volumes:
       - ./logs:/app/logs
       - ./temp_audio:/app/temp_audio
-      - ./google-credentials.json:/app/google-credentials.json:ro
-      - ./.env:/app/.env:ro
-    
-    # Environment variables
-    environment:
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
-      - GOOGLE_SERVICE_ACCOUNT_FILE=/app/google-credentials.json
-    
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
-        reservations:
-          memory: 512M
-          cpus: '0.25'
-    
-    # Logging
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    
-    # Health check
+      - ./uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - voiceai-network
     healthcheck:
-      test: ["CMD", "python", "main.py", "--mode", "health-check"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 40s
+
+networks:
+  voiceai-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
