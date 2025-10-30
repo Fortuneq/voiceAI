@@ -1,11 +1,13 @@
 # VoiceAI Dashboard Production Dockerfile
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
     curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Create working directory
@@ -19,6 +21,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+
+# Build frontend
+WORKDIR /app/frontend
+RUN npm install && npm run build
+
+# Return to app directory
+WORKDIR /app
 
 # Create necessary directories
 RUN mkdir -p temp_audio logs
@@ -39,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Command for web dashboard
-CMD ["python", "-m", "uvicorn", "dashboard.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "src.api_server:app", "--host", "0.0.0.0", "--port", "8000"]

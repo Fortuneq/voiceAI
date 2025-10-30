@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Activity, LogOut, ChevronDown } from 'lucide-react';
+import { User, Activity, LogOut, ChevronDown, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { CallMetrics } from '../../types';
 

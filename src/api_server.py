@@ -13,8 +13,9 @@ import json
 
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.security import HTTPBearer
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
 
@@ -40,7 +41,7 @@ app = FastAPI(
 # Add CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],  # React dev servers
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://147.45.210.20:8000", "http://dashboard.aloda.agency"],  # React dev servers and production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -517,6 +518,33 @@ async def export_to_google_sheets(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+
+# Mount static files for frontend (after API routes to avoid conflicts)
+frontend_dist_path = Path(__file__).parent.parent / "frontend" / "dist"
+if frontend_dist_path.exists():
+    # Serve static assets
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist_path / "assets")), name="assets")
+
+    # Catch-all route for SPA - must be last
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        """Serve the React frontend for all non-API routes."""
+        # Don't serve frontend for API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # Try to serve the requested file
+        file_path = frontend_dist_path / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+
+        # Otherwise serve index.html (SPA)
+        index_path = frontend_dist_path / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not built")
 
 
 if __name__ == "__main__":
