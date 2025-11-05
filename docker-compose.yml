@@ -7,8 +7,8 @@ services:
     container_name: voiceai_postgres
     environment:
       POSTGRES_DB: voiceai_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: vladislav
+      POSTGRES_PASSWORD: ***REMOVED***
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
@@ -18,7 +18,7 @@ services:
     networks:
       - voiceai-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U vladislav"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile
     container_name: voiceai_dashboard
     environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/voiceai_db
+      - DATABASE_URL=postgresql://vladislav:***REMOVED***@postgres:5432/voiceai_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GOOGLE_SERVICE_ACCOUNT_FILE=${GOOGLE_SERVICE_ACCOUNT_FILE}
       - GOOGLE_DRIVE_FOLDER_ID=${GOOGLE_DRIVE_FOLDER_ID}

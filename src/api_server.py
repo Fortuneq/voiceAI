@@ -41,7 +41,7 @@ app = FastAPI(
 # Add CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://147.45.210.20:8000", "http://dashboard.aloda.agency"],  # React dev servers and production
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://147.45.210.20:8000", "http://dashboard.aloda.agency", "https://dashboard.aloda.agency"],  # React dev servers and production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

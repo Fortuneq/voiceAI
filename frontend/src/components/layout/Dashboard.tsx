@@ -29,30 +29,46 @@ export const Dashboard: React.FC = () => {
 
         console.log('API Responses:', { managersRes, metricsRes, callMetricsRes, checklistRes });
 
-        if (managersRes.success) {
-          console.log('Setting managers:', managersRes.data.managers);
+        // Set managers data (even if it's mock data on API failure)
+        if (managersRes.data && managersRes.data.managers) {
+          console.log('Setting managers:', managersRes.data.managers, 'success:', managersRes.success);
           setManagers(managersRes.data.managers);
+          if (!managersRes.success) {
+            console.warn('Using mock data for managers:', managersRes.message);
+          }
         } else {
           console.error('Failed to load managers:', managersRes.message);
         }
 
-        if (metricsRes.success) {
-          console.log('Setting metrics:', metricsRes.data);
+        // Set metrics data (even if it's mock data on API failure)
+        if (metricsRes.data) {
+          console.log('Setting metrics:', metricsRes.data, 'success:', metricsRes.success);
           setMetrics(metricsRes.data);
+          if (!metricsRes.success) {
+            console.warn('Using mock data for metrics:', metricsRes.message);
+          }
         } else {
           console.error('Failed to load metrics:', metricsRes.message);
         }
 
-        if (callMetricsRes.success) {
-          console.log('Setting call metrics:', callMetricsRes.data);
+        // Set call metrics data (even if it's mock data on API failure)
+        if (callMetricsRes.data) {
+          console.log('Setting call metrics:', callMetricsRes.data, 'success:', callMetricsRes.success);
           setCallMetrics(callMetricsRes.data);
+          if (!callMetricsRes.success) {
+            console.warn('Using mock data for call metrics:', callMetricsRes.message);
+          }
         } else {
           console.error('Failed to load call metrics:', callMetricsRes.message);
         }
 
-        if (checklistRes.success) {
-          console.log('Setting checklist stages:', checklistRes.data);
+        // Set checklist stages data
+        if (checklistRes.data) {
+          console.log('Setting checklist stages:', checklistRes.data, 'success:', checklistRes.success);
           setChecklistStages(checklistRes.data);
+          if (!checklistRes.success) {
+            console.warn('Failed to load checklist stages:', checklistRes.message);
+          }
         } else {
           console.error('Failed to load checklist stages:', checklistRes.message);
         }
