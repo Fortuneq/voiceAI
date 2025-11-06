@@ -470,6 +470,13 @@ next_step — Следующий шаг после встречи. Что сог
   "Stage NEED IDENTIFICATION": {
     "Asks required questions": 0,
     "Finds out company's business area": 0,
+    "Finds out employee count for services": 0,
+    "Checks if company has sales department": 0,
+    "Identifies IT infrastructure responsible person": 0,
+    "Clarifies services to connect to internet": 0,
+    "Asks about additional offices in Moscow or other cities": 0,
+    "Determines if equipment is required": 0,
+    "Checks if workplace wiring is needed": 0,
     "Total": 0
   },
   "Stage PRESENTATION": {

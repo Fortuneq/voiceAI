@@ -128,6 +128,14 @@ class ChecklistAnalysis(Base):
     # Stage NEED IDENTIFICATION scores
     need_asks_required_questions = Column(DECIMAL(3,1), default=0)
     need_finds_business_area = Column(DECIMAL(3,1), default=0)
+    need_company_activity = Column(DECIMAL(3,1), default=0)  # Выяснил чем занимается компания, какая сфера деятельности
+    need_employee_count = Column(DECIMAL(3,1), default=0)  # Какое количество сотрудников будет пользоваться услугами связи
+    need_sales_department = Column(DECIMAL(3,1), default=0)  # Есть ли отдел продаж в компании
+    need_it_responsible = Column(DECIMAL(3,1), default=0)  # Кто отвечает за IT инфраструктуру в компании
+    need_services_to_connect = Column(DECIMAL(3,1), default=0)  # Какие сервисы планируете подключать к интернету - почта, видеонаблюдение, телефония
+    need_additional_offices = Column(DECIMAL(3,1), default=0)  # Есть ли в компании дополнительные офисы в Москве или в других городах
+    need_equipment_required = Column(DECIMAL(3,1), default=0)  # Оборудование потребуется или нет
+    need_workplace_wiring = Column(DECIMAL(3,1), default=0)  # Требуется ли разводка для рабочих мест
     
     # Stage PRESENTATION scores
     presentation_presents_company = Column(DECIMAL(3,1), default=0)
@@ -177,7 +185,11 @@ class ChecklistAnalysis(Base):
     
     @property
     def need_total(self) -> float:
-        return (self.need_asks_required_questions or 0) + (self.need_finds_business_area or 0)
+        return (self.need_asks_required_questions or 0) + (self.need_finds_business_area or 0) + \
+               (self.need_company_activity or 0) + (self.need_employee_count or 0) + \
+               (self.need_sales_department or 0) + (self.need_it_responsible or 0) + \
+               (self.need_services_to_connect or 0) + (self.need_additional_offices or 0) + \
+               (self.need_equipment_required or 0) + (self.need_workplace_wiring or 0)
     
     @property
     def presentation_total(self) -> float:

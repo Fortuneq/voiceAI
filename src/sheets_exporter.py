@@ -225,7 +225,7 @@ class SheetsExporter:
         if checklist_analysis:
             # Calculate max scores for percentage calculation
             max_scores = {
-                'greeting': 7.0, 'contact': 8.0, 'programming': 2.0, 'need': 2.0,
+                'greeting': 7.0, 'contact': 8.0, 'programming': 2.0, 'need': 10.0,
                 'presentation': 5.0, 'objections': 5.0, 'closing': 6.0
             }
             

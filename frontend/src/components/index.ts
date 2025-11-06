@@ -13,3 +13,5 @@ export { MetricCard } from './ui/MetricCard';
 export { ManagerTable } from './ui/ManagerTable';
 export { PerformanceChart } from './ui/PerformanceChart';
 export { ProgressBar } from './ui/ProgressBar';
+export { ChecklistStageCard } from './ui/ChecklistStageCard';
+export { DetailedCriteriaCard } from './ui/DetailedCriteriaCard';

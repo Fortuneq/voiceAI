@@ -1,16 +1,20 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { ProgressBar } from './ProgressBar';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
 import type { ChecklistStageDetail } from '../../types';
 
 interface ChecklistStageCardProps {
   stage: ChecklistStageDetail;
+  onStageClick?: (stage: ChecklistStageDetail) => void;
+  showDetails?: boolean;
   className?: string;
 }
 
 export const ChecklistStageCard: React.FC<ChecklistStageCardProps> = ({
   stage,
+  onStageClick,
+  showDetails = false,
   className,
 }) => {
   const getIcon = () => {
@@ -52,12 +56,22 @@ export const ChecklistStageCard: React.FC<ChecklistStageCardProps> = ({
     }
   };
 
+  const handleClick = () => {
+    if (onStageClick) {
+      onStageClick(stage);
+    }
+  };
+
   return (
-    <div className={clsx(
-      'bg-white rounded-lg p-6 border transition-all duration-200 hover:shadow-md',
-      getBorderColor(),
-      className
-    )}>
+    <div 
+      className={clsx(
+        'bg-white rounded-lg p-6 border transition-all duration-200 hover:shadow-md',
+        getBorderColor(),
+        onStageClick && 'cursor-pointer hover:bg-gray-50',
+        className
+      )}
+      onClick={handleClick}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -72,18 +86,30 @@ export const ChecklistStageCard: React.FC<ChecklistStageCardProps> = ({
           </div>
         </div>
         
-        <div className="text-right">
-          <div className={clsx(
-            'text-2xl font-bold',
-            stage.color === 'success' ? 'text-green-600' :
-            stage.color === 'warning' ? 'text-yellow-600' :
-            stage.color === 'danger' ? 'text-red-600' : 'text-gray-600'
-          )}>
-            {stage.percentage.toFixed(1)}%
+        <div className="flex items-center space-x-3">
+          <div className="text-right">
+            <div className={clsx(
+              'text-2xl font-bold',
+              stage.color === 'success' ? 'text-green-600' :
+              stage.color === 'warning' ? 'text-yellow-600' :
+              stage.color === 'danger' ? 'text-red-600' : 'text-gray-600'
+            )}>
+              {stage.percentage.toFixed(1)}%
+            </div>
+            <div className="text-xs text-gray-500">
+              эффективность
+            </div>
           </div>
-          <div className="text-xs text-gray-500">
-            эффективность
-          </div>
+          
+          {onStageClick && (
+            <ChevronRight className={clsx(
+              'w-5 h-5 transition-transform duration-200',
+              showDetails ? 'rotate-90' : '',
+              stage.color === 'success' ? 'text-green-500' :
+              stage.color === 'warning' ? 'text-yellow-500' :
+              stage.color === 'danger' ? 'text-red-500' : 'text-gray-400'
+            )} />
+          )}
         </div>
       </div>
 

@@ -105,7 +105,20 @@ class StageScore(BaseModel):
 
 
 class ChecklistAnalysisResult(BaseModel):
-    """Model for checklist-based call analysis following the Excel structure."""
+    """Model for checklist-based call analysis following the Excel structure.
+    
+    The NEED IDENTIFICATION stage supports the following fields:
+    - need_asks_required_questions: Задает необходимые вопросы
+    - need_finds_business_area: Выясняет сферу деятельности
+    - need_company_activity: Выяснил чем занимается компания, какая сфера деятельности
+    - need_employee_count: Какое количество сотрудников будет пользоваться услугами связи
+    - need_sales_department: Есть ли отдел продаж в компании
+    - need_it_responsible: Кто отвечает за IT инфраструктуру в компании
+    - need_services_to_connect: Какие сервисы планируете подключать к интернету
+    - need_additional_offices: Есть ли в компании дополнительные офисы
+    - need_equipment_required: Оборудование потребуется или нет
+    - need_workplace_wiring: Требуется ли разводка для рабочих мест
+    """
     call_type: str = Field(alias="Call Type")
     stage_greeting: Dict[str, Union[float, int]] = Field(alias="Stage GREETING") 
     stage_contact_establishment: Dict[str, Union[float, int]] = Field(alias="Stage CONTACT ESTABLISHMENT")

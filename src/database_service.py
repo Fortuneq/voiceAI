@@ -156,6 +156,13 @@ class DatabaseService:
                 # Stage NEED IDENTIFICATION
                 "Asks required questions": "need_asks_required_questions",
                 "Finds out company's business area": "need_finds_business_area",
+                "Finds out employee count for services": "need_employee_count",
+                "Checks if company has sales department": "need_sales_department",
+                "Identifies IT infrastructure responsible person": "need_it_responsible",
+                "Clarifies services to connect to internet": "need_services_to_connect",
+                "Asks about additional offices in Moscow or other cities": "need_additional_offices",
+                "Determines if equipment is required": "need_equipment_required",
+                "Checks if workplace wiring is needed": "need_workplace_wiring",
                 
                 # Stage PRESENTATION
                 "Presents company": "presentation_presents_company",

@@ -103,6 +103,114 @@ class ChecklistCriteriaDetail(BaseModel):
     stage: str
 
 
+def get_real_checklist_criteria(stage: str, days: int) -> List[ChecklistCriteriaDetail]:
+    """Get real checklist criteria from database."""
+    if not db_service:
+        return []
+    
+    # Define criteria mappings for each stage (using real database field names)
+    stage_criteria = {
+        'greeting': [
+            ('greeting_corporate_greeting', 'Корпоративное приветствие'),
+            ('greeting_tone_friendly', 'Дружелюбный тон'),
+            ('greeting_states_purpose', 'Указывает цель звонка'),
+            ('greeting_time_before_manager', 'Время до разговора с менеджером'),
+            ('greeting_no_address_phrase', 'Не использует обращения-клише'),
+            ('greeting_no_convenient_phrase', 'Не спрашивает об удобстве'),
+            ('greeting_no_rush_words', 'Не торопит клиента'),
+        ],
+        'contact': [
+            ('contact_addresses_by_name', 'Обращается по имени'),
+            ('contact_uses_small_talk', 'Использует светскую беседу'),
+            ('contact_gives_compliment', 'Делает комплименты'),
+            ('contact_uses_humor', 'Использует юмор'),
+            ('contact_communicates_equal', 'Общается на равных'),
+            ('contact_avoids_formal_tone', 'Избегает формального тона'),
+            ('contact_simple_language', 'Использует простой язык'),
+            ('contact_no_interrupt', 'Не перебивает клиента'),
+        ],
+        'need': [
+            ('need_asks_required_questions', 'Задает необходимые вопросы'),
+            ('need_finds_business_area', 'Выясняет сферу деятельности'),
+            ('need_company_activity', 'Выяснил чем занимается компания, какая сфера деятельности'),
+            ('need_employee_count', 'Какое количество сотрудников будет пользоваться услугами связи'),
+            ('need_sales_department', 'Есть ли отдел продаж в компании'),
+            ('need_it_responsible', 'Кто отвечает за IT инфраструктуру в компании'),
+            ('need_services_to_connect', 'Какие сервисы планируете подключать к интернету - почта, видеонаблюдение, телефония'),
+            ('need_additional_offices', 'Есть ли в компании дополнительные офисы в Москве или в других городах'),
+            ('need_equipment_required', 'Оборудование потребуется или нет'),
+            ('need_workplace_wiring', 'Требуется ли разводка для рабочих мест'),
+        ],
+        'presentation': [
+            ('presentation_presents_company', 'Представляет компанию'),
+            ('presentation_services_with_benefits', 'Объясняет услуги с преимуществами'),
+            ('presentation_mentions_cases', 'Упоминает успешные кейсы'),
+            ('presentation_knows_product', 'Знает продукт'),
+            ('presentation_offers_proposal', 'Предлагает коммерческое предложение'),
+        ],
+        'objections': [
+            ('objections_agrees_empathizes', 'Соглашается и проявляет эмпатию'),
+            ('objections_no_argue', 'Не спорит с клиентом'),
+            ('objections_arguments_match', 'Аргументы соответствуют возражению'),
+            ('objections_handles_fully', 'Полностью отрабатывает возражения'),
+            ('objections_offers_proposal', 'Предлагает решение после возражений'),
+        ],
+        'closing': [
+            ('closing_asks_questions_remain', 'Спрашивает остались ли вопросы'),
+            ('closing_summarizes_conversation', 'Подводит итоги разговора'),
+            ('closing_states_next_steps', 'Указывает следующие шаги'),
+            ('closing_asks_service_date', 'Уточняет дату подключения услуг'),
+            ('closing_clarifies_proposal_send', 'Уточняет отправку предложения'),
+            ('closing_leaves_contacts', 'Оставляет контакты'),
+        ]
+    }
+    
+    if stage not in stage_criteria:
+        return []
+    
+    criteria_list = []
+    session = db_service.get_session()
+    
+    try:
+        from sqlalchemy import func, text
+        from database_models import ChecklistAnalysis, CallRecord
+        from datetime import datetime, timedelta
+        
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        for field_name, display_name in stage_criteria[stage]:
+            # Get average score for this criterion
+            query = text(f'''
+                SELECT AVG({field_name}) as avg_score, COUNT({field_name}) as count_records
+                FROM checklist_analysis ca
+                JOIN call_records cr ON ca.call_record_id = cr.id
+                WHERE cr.call_date >= :cutoff_date AND {field_name} IS NOT NULL
+            ''')
+            
+            result = session.execute(query, {'cutoff_date': cutoff_date}).fetchone()
+            
+            if result and result[0] is not None:
+                avg_score = float(result[0])
+                count_records = int(result[1])
+                max_score = 1.0
+                percentage = (avg_score / max_score) * 100
+                
+                criteria_list.append(ChecklistCriteriaDetail(
+                    criteria_name=display_name,
+                    average_score=avg_score,
+                    max_score=max_score,
+                    percentage=percentage,
+                    stage=stage
+                ))
+    
+    except Exception as e:
+        print(f"Error getting criteria for stage {stage}: {e}")
+    finally:
+        session.close()
+    
+    return criteria_list
+
+
 # API Endpoints
 
 # Authentication endpoints
@@ -387,7 +495,7 @@ async def get_checklist_stage_details(
             'greeting': {'name': 'Приветствие', 'criteria': 7},
             'contact': {'name': 'Установление контакта', 'criteria': 8},
             'programming': {'name': 'Программирование', 'criteria': 2},
-            'need': {'name': 'Выявление потребности', 'criteria': 2},
+            'need': {'name': 'Выявление потребности', 'criteria': 10},
             'presentation': {'name': 'Презентация продукта', 'criteria': 5},
             'objections': {'name': 'Обработка возражений', 'criteria': 5},
             'closing': {'name': 'Закрытие сделки', 'criteria': 6}
@@ -418,6 +526,86 @@ async def get_checklist_stage_details(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get checklist stage details: {str(e)}")
+
+
+@app.get("/api/checklist-criteria/{stage}", response_model=List[ChecklistCriteriaDetail])
+async def get_checklist_criteria_for_stage(
+    stage: str,
+    days: int = Query(30, description="Number of days to analyze"),
+    current_user = Depends(get_current_user)
+):
+    """Get detailed criteria breakdown for a specific stage."""
+    try:
+        if not db_service:
+            # Return mock data for NEEDS IDENTIFICATION 
+            if stage == 'need':
+                return [
+                    ChecklistCriteriaDetail(
+                        criteria_name="Выяснил чем занимается компания, какая сфера деятельности",
+                        average_score=0.8,
+                        max_score=1.0,
+                        percentage=80.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Какое количество сотрудников будет пользоваться услугами связи",
+                        average_score=0.7,
+                        max_score=1.0,
+                        percentage=70.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Есть ли отдел продаж в компании",
+                        average_score=0.6,
+                        max_score=1.0,
+                        percentage=60.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Кто отвечает за IT инфраструктуру в компании",
+                        average_score=0.5,
+                        max_score=1.0,
+                        percentage=50.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Какие сервисы планируете подключать к интернету - почта, видеонаблюдение, телефония",
+                        average_score=0.9,
+                        max_score=1.0,
+                        percentage=90.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Есть ли в компании дополнительные офисы в Москве или в других городах",
+                        average_score=0.4,
+                        max_score=1.0,
+                        percentage=40.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Оборудование потребуется или нет",
+                        average_score=0.8,
+                        max_score=1.0,
+                        percentage=80.0,
+                        stage="need"
+                    ),
+                    ChecklistCriteriaDetail(
+                        criteria_name="Требуется ли разводка для рабочих мест",
+                        average_score=0.3,
+                        max_score=1.0,
+                        percentage=30.0,
+                        stage="need"
+                    )
+                ]
+            # Return empty for other stages in mock mode
+            return []
+        
+        # Real implementation - fetch detailed criteria from database
+        criteria_details = get_real_checklist_criteria(stage, days)
+        return criteria_details
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get criteria details for stage {stage}: {str(e)}")
 
 
 @app.get("/api/manager/{manager_id}/details")

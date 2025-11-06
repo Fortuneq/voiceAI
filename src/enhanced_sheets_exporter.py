@@ -69,7 +69,15 @@ class EnhancedSheetsExporter:
                 'name': 'ВЫЯВЛЕНИЕ ПОТРЕБНОСТИ',
                 'criteria': [
                     'Задает обязательные вопросы',
-                    'Выясняет сферу деятельности'
+                    'Выясняет сферу деятельности',
+                    'Выяснил чем занимается компания, какая сфера деятельности',
+                    'Какое количество сотрудников будет пользоваться услугами связи',
+                    'Есть ли отдел продаж в компании',
+                    'Кто отвечает за IT инфраструктуру в компании',
+                    'Какие сервисы планируете подключать к интернету - почта, видеонаблюдение, телефония',
+                    'Есть ли в компании дополнительные офисы в Москве или в других городах',
+                    'Оборудование потребуется или нет',
+                    'Требуется ли разводка для рабочих мест'
                 ]
             },
             'presentation': {
@@ -353,7 +361,15 @@ class EnhancedSheetsExporter:
             ],
             'need': [
                 float(checklist.need_asks_required_questions or 0),
-                float(checklist.need_finds_business_area or 0)
+                float(checklist.need_finds_business_area or 0),
+                float(checklist.need_company_activity or 0),
+                float(checklist.need_employee_count or 0),
+                float(checklist.need_sales_department or 0),
+                float(checklist.need_it_responsible or 0),
+                float(checklist.need_services_to_connect or 0),
+                float(checklist.need_additional_offices or 0),
+                float(checklist.need_equipment_required or 0),
+                float(checklist.need_workplace_wiring or 0)
             ],
             'presentation': [
                 float(checklist.presentation_presents_company or 0),

@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MetricCard } from '../ui/MetricCard';
 import { PerformanceChart } from '../ui/PerformanceChart';
 import { ChecklistStageCard } from '../ui/ChecklistStageCard';
-import type { Manager, PerformanceMetric, ChecklistStageDetail } from '../../types';
+import { DetailedCriteriaCard } from '../ui/DetailedCriteriaCard';
+import { ApiService } from '../../services/api';
+import { ArrowLeft } from 'lucide-react';
+import type { Manager, PerformanceMetric, ChecklistStageDetail, ChecklistCriteriaDetail } from '../../types';
 
 interface MainContentProps {
   metrics: PerformanceMetric[];
@@ -20,6 +23,58 @@ export const MainContent: React.FC<MainContentProps> = ({
   isLoading,
 }) => {
   console.log('MainContent received:', { metrics, managers, selectedManager, isLoading });
+  
+  // State for detailed criteria view
+  const [selectedStage, setSelectedStage] = useState<ChecklistStageDetail | null>(null);
+  const [stageDetailedCriteria, setStageDetailedCriteria] = useState<ChecklistCriteriaDetail[]>([]);
+  const [loadingCriteria, setLoadingCriteria] = useState(false);
+
+  // Handler for stage selection
+  const handleStageClick = async (stage: ChecklistStageDetail) => {
+    if (selectedStage?.stage_name === stage.stage_name) {
+      // Deselect if clicking the same stage
+      setSelectedStage(null);
+      setStageDetailedCriteria([]);
+      return;
+    }
+
+    setSelectedStage(stage);
+    setLoadingCriteria(true);
+    
+    try {
+      // Map stage names to API keys
+      const stageKeyMap: { [key: string]: string } = {
+        'Приветствие': 'greeting',
+        'Установление контакта': 'contact',
+        'Программирование': 'programming',
+        'Выявление потребности': 'need',
+        'Презентация продукта': 'presentation',
+        'Обработка возражений': 'objections',
+        'Закрытие сделки': 'closing'
+      };
+      
+      const stageKey = stageKeyMap[stage.stage_name] || stage.stage_name.toLowerCase();
+      const response = await ApiService.getChecklistCriteria(stageKey, 30);
+      
+      if (response.success && response.data) {
+        setStageDetailedCriteria(response.data);
+      } else {
+        console.warn('Failed to fetch criteria:', response.message);
+        setStageDetailedCriteria([]);
+      }
+    } catch (error) {
+      console.error('Error fetching stage criteria:', error);
+      setStageDetailedCriteria([]);
+    } finally {
+      setLoadingCriteria(false);
+    }
+  };
+
+  const handleBackToStages = () => {
+    setSelectedStage(null);
+    setStageDetailedCriteria([]);
+  };
+
   // Filter metrics for selected manager or show overall metrics
   const displayMetrics = selectedManager 
     ? metrics.map(metric => ({
@@ -143,22 +198,83 @@ export const MainContent: React.FC<MainContentProps> = ({
               </>
             )}
 
-            {/* Checklist Stages Grid - New real data */}
+            {/* Checklist Stages Grid or Detailed Criteria View */}
             {checklistStages.length > 0 && (
               <>
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-2">Детализация по стадиям чек-листа</h2>
-                  <p className="text-sm text-gray-600">Реальные данные по каждой стадии продаж из базы данных</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {checklistStages.map((stage, index) => (
-                    <ChecklistStageCard
-                      key={`${stage.stage_name}-${index}`}
-                      stage={stage}
-                      className="hover:shadow-lg transition-shadow"
-                    />
-                  ))}
-                </div>
+                {!selectedStage ? (
+                  <>
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                        Детализация по стадиям чек-листа
+                      </h2>
+                      <p className="text-sm text-gray-600">
+                        Реальные данные по каждой стадии продаж из базы данных. Нажмите на стадию для просмотра детализации.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {checklistStages.map((stage, index) => (
+                        <ChecklistStageCard
+                          key={`${stage.stage_name}-${index}`}
+                          stage={stage}
+                          onStageClick={handleStageClick}
+                          showDetails={false}
+                          className="hover:shadow-lg transition-shadow"
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Detailed Criteria View */}
+                    <div className="mb-4">
+                      <div className="flex items-center space-x-4 mb-2">
+                        <button
+                          onClick={handleBackToStages}
+                          className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span className="text-sm">Назад к стадиям</span>
+                        </button>
+                      </div>
+                      <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                        Детализация стадии: {selectedStage.stage_name}
+                      </h2>
+                      <p className="text-sm text-gray-600">
+                        Показатели по каждому критерию стадии "{selectedStage.stage_name}"
+                      </p>
+                    </div>
+
+                    {loadingCriteria ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(selectedStage.criteria_count)].map((_, i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="bg-gray-100 p-4 rounded-lg">
+                              <div className="w-24 h-4 bg-gray-300 rounded mb-3"></div>
+                              <div className="w-16 h-6 bg-gray-300 rounded mb-2"></div>
+                              <div className="w-20 h-2 bg-gray-300 rounded"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : stageDetailedCriteria.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {stageDetailedCriteria.map((criteria, index) => (
+                          <DetailedCriteriaCard
+                            key={`${criteria.criteria_name}-${index}`}
+                            criteria={criteria}
+                            className="hover:shadow-md transition-shadow"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">
+                          Нет данных по критериям для стадии "{selectedStage.stage_name}"
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 

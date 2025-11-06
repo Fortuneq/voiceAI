@@ -8,6 +8,7 @@ import type {
   ProcessingStatus,
   PerformanceChart,
   ChecklistStageDetail,
+  ChecklistCriteriaDetail,
 } from '../types';
 
 // Mock data
@@ -449,6 +450,124 @@ export class ApiService {
     }
   }
 
+  // Get detailed criteria breakdown for a specific stage
+  static async getChecklistCriteria(stage: string, days: number = 30): Promise<ApiResponse<ChecklistCriteriaDetail[]>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/checklist-criteria/${stage}?days=${days}`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data: ChecklistCriteriaDetail[] = await this.handleResponse<ChecklistCriteriaDetail[]>(response);
+      
+      return {
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching checklist criteria:', error);
+      
+      // Return mock data for NEEDS IDENTIFICATION criteria for development
+      if (stage === 'need') {
+        const mockNeedsCriteria: ChecklistCriteriaDetail[] = [
+          {
+            criteria_name: 'Выяснил чем занимается компания, какая сфера деятельности',
+            average_score: 0.8,
+            max_score: 1.0,
+            percentage: 80.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Какое количество сотрудников будет пользоваться услугами связи',
+            average_score: 0.7,
+            max_score: 1.0,
+            percentage: 70.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Есть ли отдел продаж в компании',
+            average_score: 0.6,
+            max_score: 1.0,
+            percentage: 60.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Кто отвечает за IT инфраструктуру в компании',
+            average_score: 0.5,
+            max_score: 1.0,
+            percentage: 50.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Какие сервисы планируете подключать к интернету - почта, видеонаблюдение, телефония',
+            average_score: 0.9,
+            max_score: 1.0,
+            percentage: 90.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Есть ли в компании дополнительные офисы в Москве или в других городах',
+            average_score: 0.4,
+            max_score: 1.0,
+            percentage: 40.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Оборудование потребуется или нет',
+            average_score: 0.8,
+            max_score: 1.0,
+            percentage: 80.0,
+            stage: 'need'
+          },
+          {
+            criteria_name: 'Требуется ли разводка для рабочих мест',
+            average_score: 0.3,
+            max_score: 1.0,
+            percentage: 30.0,
+            stage: 'need'
+          }
+        ];
+        
+        return {
+          success: false,
+          data: mockNeedsCriteria,
+          message: 'Failed to fetch real data, showing mock criteria for NEEDS IDENTIFICATION',
+          timestamp: new Date().toISOString(),
+        };
+      }
+      
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch checklist criteria',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  // Get all criteria for all stages
+  static async getAllChecklistCriteria(days: number = 30): Promise<ApiResponse<ChecklistCriteriaDetail[]>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/checklist-criteria?days=${days}`, {
+        headers: this.getAuthHeaders(),
+      });
+      const data: ChecklistCriteriaDetail[] = await this.handleResponse<ChecklistCriteriaDetail[]>(response);
+      
+      return {
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching all checklist criteria:', error);
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch all checklist criteria',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   // Health check
   static async healthCheck(): Promise<ApiResponse<{ status: string }>> {
     try {
@@ -536,6 +655,9 @@ export const {
   getCallMetrics,
   getPerformanceChartData,
   getProcessingStatus,
+  getChecklistStages,
+  getChecklistCriteria,
+  getAllChecklistCriteria,
   healthCheck,
   getManagerDetails,
 } = ApiService;

@@ -55,6 +55,35 @@ export interface ChecklistCriteriaDetail {
   stage: string;
 }
 
+// Individual NEEDS IDENTIFICATION criteria interface for the 8 new fields
+export interface NeedsIdentificationCriteria {
+  need_company_activity: number;
+  need_employee_count: number;
+  need_sales_department: number;
+  need_it_responsible: number;
+  need_services_to_connect: number;
+  need_additional_offices: number;
+  need_equipment_required: number;
+  need_workplace_wiring: number;
+}
+
+// Extended checklist analysis interface including all fields
+export interface ChecklistAnalysis extends NeedsIdentificationCriteria {
+  id: string;
+  call_id: string;
+  // Existing checklist fields
+  greeting_total: number;
+  contact_total: number;
+  programming_total: number;
+  need_total: number;
+  presentation_total: number;
+  objections_total: number;
+  closing_total: number;
+  // Metadata
+  created_at: string;
+  updated_at?: string;
+}
+
 // Performance metrics for dashboard cards
 export interface PerformanceMetric {
   id: string;
@@ -115,6 +144,18 @@ export interface ProgressBarProps {
   color?: 'primary' | 'success' | 'warning' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   showValue?: boolean;
+  className?: string;
+}
+
+export interface DetailedCriteriaCardProps {
+  criteria: ChecklistCriteriaDetail;
+  className?: string;
+}
+
+export interface ChecklistStageCardProps {
+  stage: ChecklistStageDetail;
+  onStageClick?: (stage: ChecklistStageDetail) => void;
+  showDetails?: boolean;
   className?: string;
 }
 

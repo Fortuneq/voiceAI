@@ -28,7 +28,14 @@
   },
   "Stage NEED IDENTIFICATION": {
     "Asks required questions": "Задал обязательные вопросы",
-    "Finds out company’s business area": "Выяснил чем занимается компания, какая сфера деятельности",
+    "Finds out company's business area": "Выяснил чем занимается компания, какая сфера деятельности",
+    "Finds out employee count for services": "Какое количество сотрудников будет пользоваться услугами связи",
+    "Checks if company has sales department": "Есть ли отдел продаж в компании",
+    "Identifies IT infrastructure responsible person": "Кто отвечает за IT инфраструктуру в компании",
+    "Clarifies services to connect to internet": "Какие сервисы планируете подключать к интернету - почта, видеонаблюдение, телефония",
+    "Asks about additional offices in Moscow or other cities": "Есть ли в компании дополнительные офисы в Москве или в других городах",
+    "Determines if equipment is required": "Оборудование потребуется или нет",
+    "Checks if workplace wiring is needed": "Требуется ли разводка для рабочих мест",
     "Total": "Итого"
   },
   "Stage PRESENTATION": {
