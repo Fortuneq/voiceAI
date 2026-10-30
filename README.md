@@ -2,6 +2,41 @@
 
 A comprehensive Python-based system that automatically analyzes audio call recordings using AI, stores manager performance metrics, and provides detailed insights. Originally converted from an n8n workflow to standalone Python application.
 
+![Dashboard concept](frontend_example/img.png)
+
+```mermaid
+flowchart LR
+    GD[(Google Drive<br/>call recordings)] -->|watch + download| WO[Workflow orchestrator]
+    WO --> WH["OpenAI Whisper<br/>transcription"]
+    WH --> MD[Manager detection]
+    MD --> CA["GPT-4o-mini<br/>checklist analysis<br/>33 criteria · 7 stages"]
+    MD --> AA["GPT-4o-mini<br/>AI analysis<br/>7 areas · 0–100"]
+    CA & AA --> DB[("Database<br/>calls · analyses · managers<br/>processed files")]
+    DB --> API["FastAPI<br/>REST API"]
+    API --> FE["React dashboard<br/>manager rankings · KPIs"]
+    DB -.->|optional export| GS[(Google Sheets)]
+```
+
+```mermaid
+sequenceDiagram
+    participant D as Google Drive
+    participant O as Orchestrator
+    participant P as processed_files
+    participant AI as OpenAI
+    participant DB as Database
+    O->>D: list new audio files
+    O->>P: already processed?
+    alt new file
+        O->>D: download
+        O->>AI: Whisper transcription
+        O->>AI: checklist + AI analysis
+        O->>DB: save call, scores, manager
+        O->>P: mark processed
+    else seen before
+        O-->>O: skip (saves API cost)
+    end
+```
+
 ## 🎯 What This System Does
 
 The VoiceAI Call Analysis System automatically:
